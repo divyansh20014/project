@@ -1,0 +1,7 @@
+curl -X POST http://localhost:8080/financial \
+-H "Content-Type: application/json" \
+-d '{"transactionId": "98765", "type": "financial", "amount": 500.00, "currency": "USD"}'
+
+curl -X POST http://localhost:8080/nonfinancial \
+-H "Content-Type: application/json" \
+-d '{"transactionId": "54321", "type": "nonfinancial", "description": "Profile Update"}'
