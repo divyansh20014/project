@@ -1,0 +1,18 @@
+<rests xmlns="http://camel.apache.org/schema/spring">
+  
+  <!-- Financial Transaction Endpoint -->
+  <rest path="/financial">
+    <post consumes="application/json" produces="application/json">
+      <to uri="direct:processFinancial"/>
+    </post>
+  </rest>
+  
+  <!-- Non-Financial Transaction Endpoint -->
+  <rest path="/nonfinancial">
+    <post consumes="application/json" produces="application/json">
+      <to uri="direct:processNonFinancial"/>
+    </post>
+  </rest>
+
+</rests>
+
