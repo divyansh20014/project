@@ -11,7 +11,7 @@
 <rest>
 <!--  Can be used for checking Camel health at the network level.  -->
 <!-- curl -X GET http://localhost:9090/ping -->
-<get uri="/ping1">
+<get path="/ping1">
 <route id="Ping12">
 <transform>
 <constant>pong1</constant>
