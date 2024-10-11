@@ -15,13 +15,12 @@
                 <camel:to uri="direct:pingRoute"/>
             </camel:get>
         </camel:rest>
+
+        <camel:route id="pingRoute">
+            <camel:from uri="direct:pingRoute"/>
+            <camel:transform>
+                <camel:constant>pong1</camel:constant>
+            </camel:transform>
+        </camel:route>
     </camel:camelContext>
-
-    <camel:route id="pingRoute">
-        <camel:from uri="direct:pingRoute"/>
-        <camel:transform>
-            <camel:constant>pong1</camel:constant>
-        </camel:transform>
-    </camel:route>
 </beans>
-
