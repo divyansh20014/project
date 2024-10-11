@@ -1,0 +1,98 @@
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:lang="http://www.springframework.org/schema/lang" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
+<bean id="odeLoadbalancerFactory" class="com.sas.finance.fraud.ol.monitor.OdesDynamicFailoverLoadbalancerFactory">
+<constructor-arg name="healthCheckServiceName" value="ODE"/>
+<constructor-arg name="camelContext" ref="SFM_OL"/>
+<constructor-arg name="serviceStatus" ref="ODEStatus"/>
+<constructor-arg name="periodeInSec" value="30"/>
+<constructor-arg name="id" value="odeLoadBalancerFromBean"/>
+<constructor-arg name="exceptions">
+<list>
+<value>java.net.ConnectException</value>
+<value>java.lang.RuntimeException</value>
+</list>
+</constructor-arg>
+<property name="startListeners">
+<list>
+<ref bean="odeCamelClientsManager"/>
+</list>
+</property>
+</bean>
+<bean id="odeLoadBalancer" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+<property name="targetObject" ref="odeLoadbalancerFactory"/>
+<property name="targetMethod" value="build"/>
+</bean>
+<bean id="odeCamelClientsManager" class="com.sas.finance.fraud.ol.monitor.OdeCamelClientsManager">
+<property name="odeClientsChangeListeners">
+<list>
+<ref bean="odeProcessor"/>
+<ref bean="odeStatsArchiver"/>
+<ref bean="myLoggingEventNotifier"/>
+</list>
+</property>
+</bean>
+<bean id="requestDispatcher" class="com.sas.finance.fraud.ol.mapper.RequestDispatcher"/>
+<!--  To keep track of ODEs' reachability  -->
+<bean id="ODEStatus" class="com.sas.finance.fraud.ol.mq.ODEStatus"/>
+<!--  To avoid missing and unwanted segments problem, set it to true. Mainly for development usage purpose.  -->
+<bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+<property name="staticMethod" value="com.sas.finance.fraud.ol.xmlmapping.XmlMapper.setGauranteeValidTransaction"/>
+<property name="arguments">
+<list>
+<value>true</value>
+</list>
+</property>
+</bean>
+<bean id="log4jWatcher" class="com.sas.finance.fraud.ol.utils.Log4jChangeWatcher">
+<constructor-arg name="log4jFile" value="log4j.xml"/>
+</bean>
+<bean id="conversionService" class="org.springframework.context.support.ConversionServiceFactoryBean">
+<property name="converters">
+<set>
+<bean class="com.sas.finance.fraud.ol.secure.OLCredentialConverter"/>
+</set>
+</property>
+</bean>
+<!--  see if there is a difference between using bean method vs groovy funtion  -->
+<bean id="odeUtils" class="com.sas.finance.fraud.ol.utils.OdeUtils"/>
+<!--  <bean id="xtionValidator" class="com.sas.finance.fraud.ol.beans.TransactionValidator"/>  -->
+<bean id="xtionValidator" class="com.sas.finance.fraud.ol.beans.EopTxnFieldValidator">
+<property name="minDoubleValue" value="1E-3"/>
+<property name="maxDoubleValue" value="1E18"/>
+</bean>
+<bean id="setTransactionId" class="com.sas.finance.fraud.ol.beans.SetTransactionId"/>
+<bean id="inboundMapper" class="com.sas.finance.fraud.ol.beans.OlInBoundMapper"/>
+<bean id="outboundMapper" class="com.sas.finance.fraud.ol.beans.OlOutBoundMapper"/>
+<bean id="uniqueKeySaver" class="com.sas.finance.fraud.ol.beans.StoreUniqueKey">
+<constructor-arg name="sfmFields">
+<list>
+<value>AQO_ACCT_NUM</value>
+<value>HQO_CARD_NUM</value>
+<value>XQO_CUST_NUM</value>
+</list>
+</constructor-arg>
+</bean>
+<bean id="encoder" class="com.sas.finance.fraud.ol.converter.TransactionEncoder"/>
+<bean id="decoder" class="com.sas.finance.fraud.ol.converter.OLDecoderChannelHandlerFactory"/>
+<bean id="txnToJsonString" class="com.sas.finance.fraud.ol.beans.TransactionToJsonString"/>
+<bean id="delayer" class="com.sas.finance.fraud.ol.beans.Delayer">
+<property name="delayMillis" value="0"/>
+</bean>
+<!--  This will get auto registered and be used when needed  -->
+<bean id="xtionToStream" class="com.sas.finance.fraud.ol.converter.TransactionToStreamConverter"/>
+<!--  This repository holds mapping definitions for incoming messages.  -->
+<bean id="XmlMappingsRepository" class="com.sas.finance.fraud.ol.xmlmapping.IBXmlMappingsRepository">
+<constructor-arg name="xmlMappingsDir" value="${xml_mappings_folder}"/>
+</bean>
+<!--  This repository holds mappings for out bound mapping definitions.  -->
+<bean id="OBXmlMappingsRepository" class="com.sas.finance.fraud.ol.xmlmapping.OBXmlMappingsRepository">
+<constructor-arg name="xmlMappingsDir" value="${ob_xml_mappings_folder}"/>
+</bean>
+<!--  This repository holds mapping definitions for incoming messages.  -->
+<bean id="CsvMappingsRepository" class="com.sas.finance.fraud.ol.fieldsmapping.csv.CsvMappingsRepository">
+<constructor-arg name="mappingsDir" value="${csv_mappings_folder}"/>
+</bean>
+<bean id="customExchangeTracker" class="com.sas.finance.fraud.ol.beans.CustomExchangeTracker"/>
+<bean id="transactionDefinition" class="com.sas.finance.fraud.ol.utils.TransactionHelper">
+<constructor-arg name="cfgDir" value="${transaction_definition_folder}"/>
+</bean>
+</beans>
