@@ -4,18 +4,23 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans 
                            http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <camelContext xmlns="http://camel.apache.org/schema/spring" id="simpleCamelContext">
-        
-        <!-- Simple Route Definition -->
-        <route id="simpleRoute">
-            <from uri="direct:start"/>
-            <log message="Received message: ${body}"/>
-            <transform>
-                <constant>Hello from Camel!</constant>
-            </transform>
-            <to uri="mock:result"/>
-        </route>
+    <!-- Simple Processor Bean -->
+    <bean id="simpleProcessor" class="org.apache.camel.Processor">
+        <property name="process" value="Hello from Camel!"/>
+    </bean>
 
-    </camelContext>
+    <!-- Route definition using a bean -->
+    <bean id="simpleRouteBuilder" class="org.apache.camel.builder.RouteBuilder">
+        <property name="routes">
+            <list>
+                <bean class="org.apache.camel.builder.RouteBuilder">
+                    <property name="id" value="simpleRoute"/>
+                    <property name="from" value="direct:start"/>
+                    <property name="to" value="log:received"/>
+                    <property name="process" ref="simpleProcessor"/>
+                </bean>
+            </list>
+        </property>
+    </bean>
 
 </beans>
