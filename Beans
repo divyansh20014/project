@@ -1,36 +1,5 @@
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:lang="http://www.springframework.org/schema/lang"
-       xmlns:camel="http://camel.apache.org/schema/spring"
-       xsi:schemaLocation="
-           http://www.springframework.org/schema/beans 
-           http://www.springframework.org/schema/beans/spring-beans.xsd
-           http://camel.apache.org/schema/spring 
-           http://camel.apache.org/schema/spring/camel-spring.xsd
-           http://www.springframework.org/schema/context 
-           http://www.springframework.org/schema/context/spring-context.xsd
-           http://www.springframework.org/schema/lang 
-           http://www.springframework.org/schema/lang/spring-lang.xsd">
-
-    <camel:camelContext xmlns="http://camel.apache.org/schema/spring" id="BOSSODE">
-        <rest>
-            <!-- Can be used for checking Camel health at the network level. -->
-            <!-- curl -X GET http://localhost:9090/ping -->
-            <get uri="/ping1">
-                <route id="Ping12">
-                    <transform>
-                        <constant>pong1</constant>
-                    </transform>
-                </route>
-            </get>
-        </rest>
-    </camel:camelContext>
-</beans>
-
-
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns:camel="http://camel.apache.org/schema/spring"
        xsi:schemaLocation="
            http://www.springframework.org/schema/beans 
@@ -42,18 +11,17 @@
         <camel:restConfiguration component="jetty" scheme="http" host="localhost" port="9090"/>
 
         <camel:rest path="/ping1">
-            <camel:get uri="/ping">
+            <camel:get>
                 <camel:to uri="direct:pingRoute"/>
             </camel:get>
         </camel:rest>
-
-        <camel:route id="pingRoute">
-            <camel:from uri="direct:pingRoute"/>
-            <camel:transform>
-                <camel:constant>pong1</camel:constant>
-            </camel:transform>
-        </camel:route>
     </camel:camelContext>
+
+    <camel:route id="pingRoute">
+        <camel:from uri="direct:pingRoute"/>
+        <camel:transform>
+            <camel:constant>pong1</camel:constant>
+        </camel:transform>
+    </camel:route>
 </beans>
-end
 
