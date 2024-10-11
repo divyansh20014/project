@@ -16,3 +16,29 @@
 
 </rests>
 
+
+<camelContext xmlns="http://camel.apache.org/schema/spring">
+  <rest path="/say">
+    <get path="/hello">
+      <to uri="direct:hello"/>
+    </get>
+    <get path="/bye" consumes="application/json">
+      <to uri="direct:bye"/>
+    </get>
+    <post path="/bye">
+      <to uri="mock:update"/>
+    </post>
+  </rest>
+  <route>
+    <from uri="direct:hello"/>
+    <transform>
+      <constant>Hello World</constant>
+    </transform>
+  </route>
+  <route>
+    <from uri="direct:bye"/>
+    <transform>
+      <constant>Bye World</constant>
+    </transform>
+  </route>
+</camelContext>
