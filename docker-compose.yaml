@@ -1,0 +1,14 @@
+version: '3'
+services:
+  camel-service:
+    image: your-docker-image
+    container_name: camel-container
+    ports:
+      - "8443:8443"  # Expose the HTTPS port
+    volumes:
+      - ./config/ssl:/config/ssl  # Mount the directory with your keystore and truststore
+    environment:
+      - JAVA_OPTS=-Djavax.net.ssl.trustStore=/config/ssl/serverTruststore.jks
+      - JAVA_OPTS=-Djavax.net.ssl.trustStorePassword=yourTruststorePassword
+      - JAVA_OPTS=-Djavax.net.ssl.keyStore=/config/ssl/serverKeystore.jks
+      - JAVA_OPTS=-Djavax.net.ssl.keyStorePassword=yourKeystorePassword
