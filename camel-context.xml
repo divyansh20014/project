@@ -1,0 +1,48 @@
+<camelContext xmlns="http://camel.apache.org/schema/spring">
+  
+  <!-- REST Configuration for handling JSON data -->
+  <restConfiguration component="jetty" host="0.0.0.0" port="8080" bindingMode="json">
+    <contextPath>/api</contextPath>
+    <dataFormatProperty key="prettyPrint" value="true"/>
+  </restConfiguration>
+
+  <!-- Defining REST endpoints for financial and non-financial transactions -->
+  <rest path="/transactions">
+    
+    <!-- Financial Transactions Endpoint (expects JSON input) -->
+    <post path="/financial" consumes="application/json" produces="application/json">
+      <to uri="direct:financialTransaction"/>
+    </post>
+    
+    <!-- Non-Financial Transactions Endpoint (expects JSON input) -->
+    <post path="/nonfinancial" consumes="application/json" produces="application/json">
+      <to uri="direct:nonFinancialTransaction"/>
+    </post>
+    
+  </rest>
+
+  <!-- Route to handle Financial Transactions (JSON) -->
+  <route>
+    <from uri="direct:financialTransaction"/>
+    <!-- Log the incoming financial transaction -->
+    <log message="Received Financial Transaction (JSON): ${body}" loggingLevel="INFO"/>
+    
+    <!-- Simple transformation to return a response -->
+    <transform>
+      <constant>{"message": "Financial Transaction Received"}</constant>
+    </transform>
+  </route>
+
+  <!-- Route to handle Non-Financial Transactions (JSON) -->
+  <route>
+    <from uri="direct:nonFinancialTransaction"/>
+    <!-- Log the incoming non-financial transaction -->
+    <log message="Received Non-Financial Transaction (JSON): ${body}" loggingLevel="INFO"/>
+    
+    <!-- Simple transformation to return a response -->
+    <transform>
+      <constant>{"message": "Non-Financial Transaction Received"}</constant>
+    </transform>
+  </route>
+
+</camelContext>
