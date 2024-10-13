@@ -45,4 +45,22 @@
     </transform>
   </route>
 
-</camelContext>
+</camelContext>\
+
+
+<camel:route id="financialRoute">
+    <camel:from uri="jetty:https://0.0.0.0:8443/financial?sslContextParameters=#sslContextParameters&amp;needClientAuth=true"/>
+    <camel:log message="Received financial request from ${header.CamelHttpRemoteHost}: ${body}"/>
+</camel:route>
+
+<camel:route id="nonFinancialRoute">
+    <camel:from uri="jetty:https://0.0.0.0:8443/nonfinancial?sslContextParameters=#sslContextParameters&amp;needClientAuth=true"/>
+    <camel:log message="Received non-financial request from ${header.CamelHttpRemoteHost}: ${body}"/>
+</camel:route>
+
+curl -X POST https://localhost:8443/financial \
+    -d '{"key": "value"}' \
+    -H "Content-Type: application/json" \
+    --cert /path/to/client-cert.pem \
+    --key /path/to/client-key.pem \
+    --cacert /path/to/ca-cert.pem
