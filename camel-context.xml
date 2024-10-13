@@ -71,5 +71,5 @@ curl -X POST https://localhost:8443/financial \
     --cert clientKeystore.p12:password \
     --cacert serverCert.cer
 
-
+openssl pkcs12 -in clientKeystore.p12 -out clientKeystore.pem -nodes -nocerts
 keytool -importkeystore -srckeystore clientKeystore.jks -destkeystore clientKeystore.p12 -deststoretype PKCS12
