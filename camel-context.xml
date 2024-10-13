@@ -74,5 +74,4 @@ curl -X POST https://localhost:8443/financial \
 openssl pkcs12 -in clientKeystore.p12 -out clientKeystore.pem -nodes -nocerts
 keytool -importkeystore -srckeystore clientKeystore.jks -destkeystore clientKeystore.p12 -deststoretype PKCS12
 
-openssl x509 -in serverCert.cer -out serverCert.pem -outform PEM
-openssl x509 -in clientCert.cer -out clientCert.pem -outform PEM
+openssl req -new -x509 -key clientKey.pem -out newClientCert.pem -days 365 -subj "/CN=localhost"
