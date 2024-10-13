@@ -65,7 +65,11 @@ curl -X POST https://localhost:8443/financial \
     --key /path/to/client-key.pem \
     --cacert /path/to/ca-cert.pem
 
-
+curl -X POST https://localhost:8443/financial \
+    -d '{"key": "value"}' \
+    -H "Content-Type: application/json" \
+    --cert clientKeystore.p12:password \
+    --cacert serverCert.cer
 
 
 keytool -importkeystore -srckeystore clientKeystore.jks -destkeystore clientKeystore.p12 -deststoretype PKCS12
