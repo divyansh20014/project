@@ -1,1 +1,52 @@
 0000000406.01.00TRXBCSNCOBFNAPNAPNAPRFFT_OAC  5111CHANNEL SEFM                  GLOBAL                                010000050110                                                                                                                                                                                                                                                                                                                                              01073002                                                                                                                                                                                                                                                                                          
+
+
+
+
+
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
+import java.util.Random;
+import java.util.Arrays;
+import java.util.List;
+
+public class TransactionProcessor implements Processor {
+
+    private Random random = new Random();
+
+    // Predefined EfmsResponse values
+    private static final List<String> EFMS_RESPONSES = Arrays.asList("00", "01", "04");
+
+    @Override
+    public void process(Exchange exchange) throws Exception {
+        // Generate random values
+        String randomCustomerID = generateRandomNumericID();
+        String randomChannelRef = generateRandomAlphanumericRef();
+        String randomEfmsResponse = EFMS_RESPONSES.get(random.nextInt(EFMS_RESPONSES.size()));
+
+        // Construct the JSON response as a String
+        String jsonResponse = String.format(
+            "{\"Data\": {\"EFMSChannelReferenceNumber\": \"%s\", \"CustomerID\": \"%s\", \"EfmsResponse\": \"%s\"}}",
+            randomChannelRef, randomCustomerID, randomEfmsResponse
+        );
+
+        // Set the JSON response as the exchange body
+        exchange.getIn().setBody(jsonResponse);
+    }
+
+    // Method to generate a random numeric CustomerID (6 digits)
+    private String generateRandomNumericID() {
+        int customerID = random.nextInt(900000) + 100000;  // Ensures 6-digit number
+        return String.valueOf(customerID);
+    }
+
+    // Method to generate a random alphanumeric EFMSChannelReferenceNumber (8 characters)
+    private String generateRandomAlphanumericRef() {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 8; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+}
