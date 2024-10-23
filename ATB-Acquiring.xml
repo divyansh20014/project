@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
+       xmlns:util="http://www.springframework.org/schema/util"
+       xmlns:lang="http://www.springframework.org/schema/lang"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+       http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://camel.apache.org/schema/spring
+       http://camel.apache.org/schema/spring/camel-spring.xsd
+       http://www.springframework.org/schema/context
+       http://www.springframework.org/schema/context/spring-context.xsd
+       http://www.springframework.org/schema/util
+       http://www.springframework.org/schema/util/spring-util.xsd
+       http://www.springframework.org/schema/lang 
+       http://www.springframework.org/schema/lang/spring-lang.xsd
+       http://www.springframework.org/schema/rabbit
+       http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd
+	   ">
+	  
+	<bean id="bridgePropertyPlaceholder" class="org.apache.camel.spring.spi.BridgePropertyPlaceholderConfigurer">
+        <property name="ignoreResourceNotFound" value="true" />
+        <property name="locations">
+            <list>
+                <value>classpath:spring/camel-context.properties</value>
+            </list>
+        </property>
+    </bean>
+
+		
+	<!--Initiating groovy file for integration between SFM to VI for Confirmed Fraud Alerts-->
+	<lang:groovy id="jsonToMap" script-source="classpath:groovy/actionSFM.groovy"/>
+	<lang:groovy id="requestADIB" script-source="classpath:groovy/RTDRequest.groovy"/>
+	<lang:groovy id="sampleJson" script-source="classpath:groovy/sample_json.groovy"/>
+	<lang:groovy id="sampleJsonResponse" script-source="classpath:groovy/sample_json_response.groovy"/>
+	<lang:groovy id="errorHandling" script-source="classpath:groovy/error_handling.groovy"/>
+
+	<camelContext id="Acquiring" xmlns="http://camel.apache.org/schema/spring">
+
+		<errorHandler id="noErrorHandler" type="NoErrorHandler"/>
+		<routeContextRef ref="activeMqRoutes"/>
+		<routeContextRef ref="actionSFMRoute"/>
+
+        <threadPoolProfile id="defaultThreadPoolProfile" defaultProfile="true" poolSize="10" maxPoolSize="20" maxQueueSize="1000"
+                           allowCoreThreadTimeOut="false" rejectedPolicy="CallerRuns" />
+
+        <!-- Catch the authorization exception and set the Access Denied message back -->
+        <onException>
+            <exception>org.springframework.security.authentication.BadCredentialsException</exception>
+            <handled><constant>true</constant></handled>
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>401</constant>
+            </setHeader>
+            <transform>
+                <simple>Bad credentials</simple>
+            </transform>
+        </onException>
+        <onException>
+            <exception>org.apache.camel.CamelAuthorizationException</exception>
+            <handled><constant>true</constant></handled>
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>403</constant>
+            </setHeader>
+            <transform>
+                <simple>Access Denied: ${exception.policyId} !</simple>
+            </transform>
+        </onException>
+
+        <restConfiguration component="jetty" host="{{rest_hostname}}" port="{{rest_listen_port}}" bindingMode="off" apiContextPath="api-docs" apiContextListing="true" enableCORS="true">
+
+            <dataFormatProperty key="json.in.disableFeatures" value="FAIL_ON_UNKNOWN_PROPERTIES,ADJUST_DATES_TO_CONTEXT_TIME_ZONE" />
+            <dataFormatProperty key="json.in.enableFeatures" value="FAIL_ON_NUMBERS_FOR_ENUMS,USE_BIG_DECIMAL_FOR_FLOATS" />
+
+            <!-- we want json output in pretty mode -->
+            <dataFormatProperty key="prettyPrint" value="true"/>
+
+            <!-- setup swagger api descriptions -->
+            <apiProperty key="api.version" value="1.0.0"/>
+            <apiProperty key="api.title" value="EOP REST Services"/>
+            <apiProperty key="api.description" value="EOP REST API to send trasaction"/>
+            <apiProperty key="api.contact.name" value="SAS RAPTOR"/>
+            <apiProperty key="host" value="localhost:{{rest_listen_port}}"/>
+            <apiProperty key="schemes" value="http,https"/>
+        </restConfiguration>
+		
+		<rest apiDocs="false">
+			<post uri="/EFRMS/cards/gov_acquiring/transactions">
+                <route id="generalRoute" startupOrder="55">
+
+					<bean ref="sampleJson" method="jsonMapping"/>
+					
+					<setHeader headerName="csvId"> <constant>sample1</constant> </setHeader>
+					<setHeader headerName="delimiter"> <constant>,</constant> </setHeader>
+					<setHeader headerName="format"> <constant>csv</constant> </setHeader>
+					<setHeader headerName="mapperId"> <constant>csvMap1</constant> </setHeader>
+					<setHeader headerName="useSrcMap"> <constant>NO</constant> </setHeader>
+					
+					<to id="general_route_logger" uri="log:reporter?level=INFO&amp;groupInterval=5000&amp;groupDelay=5000"/>
+					<convertBodyTo type="java.lang.String"/>
+					
+					<doTry>
+						<bean ref="odeUtils" method="decodeWebString" />
+						<to uri="direct:requestDispatcher"/>
+						<doCatch>
+							<exception>com.sas.finance.fraud.transaction.field.Field$EncodeException</exception>
+							<bean ref="errorHandling" method="errorMessageJson" />
+							<stop />
+						</doCatch>
+					</doTry>
+				
+					<bean ref="txnToJsonString"/>
+					<bean ref="sampleJsonResponse" method="jsonMappingResponse"/>
+				</route>    
+            </post>	
+		</rest>
+	
+		<route id="Dispatcher" startupOrder="33">
+            <from uri="direct:requestDispatcher"/>
+            <!-- <onCompletion parallelProcessing="true"><to uri="direct:MsgHistLogger"/></onCompletion> -->
+
+            <doTry>
+                <bean ref="requestDispatcher" method="process"/>
+                <bean id="StoreUnqKeyFor_format" ref="uniqueKeySaver"/>
+                <to uri="disruptor:sendTransactionToODE?timeout={{sla_timeout}}&amp;waitForTaskToComplete=Always"/>
+                
+            </doTry>
+        </route>
+		
+		<route id="coreHandler" startupOrder="30" errorHandlerRef="noErrorHandler">
+            <from uri="disruptor:sendTransactionToODE?concurrentConsumers=8" />
+
+            <onCompletion><to uri="seda:collectPerfData"/></onCompletion>
+
+            <bean id="setTransactionId" ref="setTransactionId" />
+            <bean ref="customExchangeTracker" method="startLogging" />
+            <bean id="validation" ref="xtionValidator" method="validate" />
+
+            <doTry>
+            <loadBalance id="ODE Load Balancer" inheritErrorHandler="false">
+                <custom ref="odeLoadBalancer"/>
+				<to id="sfmdemo1" uri="netty4:tcp://{{ODE1}}:5018?sync=true&amp;encoder=#encoder&amp;decoder=#decoder"/>
+				<to id="sfmdemo2" uri="netty4:tcp://{{ODE2}}:5018?sync=true&amp;encoder=#encoder&amp;decoder=#decoder"/>
+				<to id="sfmdemo3" uri="netty4:tcp://{{ODE3}}:5018?sync=true&amp;encoder=#encoder&amp;decoder=#decoder"/>
+            </loadBalance>
+               <doCatch>
+                    <exception>java.net.ConnectException</exception>
+                    <exception>java.lang.RuntimeException</exception>
+					<setProperty propertyName="errorContent"><simple>${exception.message}</simple></setProperty>
+					<bean ref="errorHandling" method="errorMessageJson" />
+					<stop/>
+                    <to uri="direct:handleSendError"/>
+                </doCatch>
+            </doTry>
+
+            <bean ref="customExchangeTracker" method="endLogging" />
+            <bean id="cacheResponseForStandIn" ref="requestTimeoutHandler" method="handleSuccess" />
+        </route>
+		
+		<route id="handleSendError" startupOrder="20">
+            <from uri="direct:handleSendError" />
+            <doTry>
+                <!--<bean ref="saf" method="store"/>-->
+                <to uri="log:?level=ERROR" />
+                <doCatch>
+                    <!-- Exception thrown from here can cause errors recursively, we'd better catch it. -->
+                    <exception>java.lang.Throwable</exception>
+                    <to uri="log:?level=ERROR" />
+                </doCatch>
+            </doTry>
+        </route>
+
+	</camelContext>
+	
+</beans>
