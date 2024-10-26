@@ -29,3 +29,11 @@ public class TransactionProcessor implements Processor {
         exchange.getIn().setBody(responseJson.toString());
     }
 }
+
+
+curl -X POST http://localhost:8080/nonfinancial \
+-H "Content-Type: application/json" \
+-d '{
+    "transaction_type": "refund",
+    "transaction_id": "TX654321"
+}'
