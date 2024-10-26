@@ -1,0 +1,31 @@
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
+import org.json.JSONObject;
+
+public class TransactionProcessor implements Processor {
+
+    @Override
+    public void process(Exchange exchange) throws Exception {
+        // Retrieve the incoming request body as a string
+        String requestBody = exchange.getIn().getBody(String.class);
+
+        // Parse the JSON string
+        JSONObject jsonObject = new JSONObject(requestBody);
+
+        // Extract transaction_type and transaction_id from the parsed JSON
+        String transactionType = jsonObject.getString("transaction_type");
+        String transactionId = jsonObject.getString("transaction_id");
+
+        // Use the fixed response format for response_fixedlength
+        String responseFixedLength = "0000000406.01.00TRXBCSNCOBFNAPNAPNAPRFFT_OAC  5111CHANNEL SEFM                  GLOBAL                                010000050110                                                                                                                                                                                                                                                                                                                                              01073002";
+
+        // Construct the response JSON
+        JSONObject responseJson = new JSONObject();
+        responseJson.put("transaction_type", transactionType);
+        responseJson.put("transaction_id", transactionId);
+        responseJson.put("response_fixedlength", responseFixedLength);
+
+        // Set the JSON response as the exchange body
+        exchange.getIn().setBody(responseJson.toString());
+    }
+}
