@@ -53,3 +53,15 @@
     </camel:sslContextParameters>
 
 </beans>
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans 
+                           http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <!-- Define a simple test bean -->
+    <bean id="testBean" class="java.util.HashMap">
+        <property name="testKey" value="testValue"/>
+    </bean>
+
+</beans>
