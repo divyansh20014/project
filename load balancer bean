@@ -1,0 +1,37 @@
+<bean id="serviceUnitChainGenerator" 
+class="com.sas.finance.fraud.ol.monitor.LbServiceUnitChainGenerator">
+     <constructor-arg name="generators">
+         <list>
+              <bean class="com.sas.finance.fraud.ol.monitor.SendProcessorServiceUnitGenerator"/>
+              <bean class="com.sas.finance.fraud.ol.monitor.MockOdeServiceUnitGenerator"/>
+         </list>
+     </constructor-arg>
+</bean>
+
+<bean id="ODEStatus" class="com.sas.finance.fraud.ol.mq.ODEStatus"/>
+
+<bean id="odeLoadbalancerFactory" class="com.sas.finance.fraud.ol.monitor.OdesDynamicFailoverLoadbalancerFactory">
+     <constructor-arg name="serviceUnitGenerator" ref="serviceUnitChainGenerator"/>
+     <constructor-arg name="healthCheckServiceName" value="ODE"/>
+     <constructor-arg name="camelContext" ref="camelContext"/>
+     <constructor-arg name="serviceStatus" ref="ODEStatus"/>
+     <constructor-arg name="periodeInSec" value="30"/>
+     <constructor-arg name="id" value="odeLoadBalancerFromBean"/>
+     <constructor-arg name="exceptions">
+         <list>
+              <value>java.net.ConnectException</value>
+              <value>java.lang.RuntimeException</value>
+         </list>
+     </constructor-arg>
+     <property name="startListeners">
+         <list>
+              <ref bean="odeCamelClientsManager"/>
+         </list>
+     </property>
+</bean>
+<bean id="odeLoadBalancer" class="com.sas.finance.fraud.ol.monitor.OdesDynamicFailoverLoadbalancerFactory"
+          factory-bean="odeLoadbalancerFactory" factory-method="build"/>
+<bean id="odeCamelClientsManager" class="com.sas.finance.fraud.ol.monitor.OdeCamelClientsManager">
+     <constructor-arg name="serviceUnitGenerator" ref="serviceUnitChainGenerator"/>
+</bean>
+
