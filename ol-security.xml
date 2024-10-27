@@ -93,3 +93,22 @@
     </bean>
 
 </beans>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans 
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://camel.apache.org/schema/spring 
+           http://camel.apache.org/schema/spring/camel-spring.xsd">
+
+    <!-- Define a simple bean that can be referenced in Camel routes -->
+    <bean id="testBean" class="com.example.TestBean"/>
+
+    <!-- Define a Camel route that logs a message -->
+    <camel:route id="logRoute">
+        <camel:from uri="timer:logTimer?period=5000"/>
+        <camel:log message="This is a test log message from the Camel route!"/>
+    </camel:route>
+
+</beans>
