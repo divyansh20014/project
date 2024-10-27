@@ -56,12 +56,20 @@
 
 <beans xmlns="http://www.springframework.org/schema/beans"
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans 
-                           http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xmlns:camel="http://camel.apache.org/schema/spring"
+       xsi:schemaLocation="
+           http://www.springframework.org/schema/beans 
+           http://www.springframework.org/schema/beans/spring-beans.xsd
+           http://camel.apache.org/schema/spring 
+           http://camel.apache.org/schema/spring/camel-spring.xsd">
 
-    <!-- Define a simple test bean -->
-    <bean id="testBean" class="java.util.HashMap">
-        <property name="testKey" value="testValue"/>
-    </bean>
+    <!-- Define a simple test Camel route -->
+    <camel:camelContext id="testCamelContext">
+        <camel:route>
+            <camel:from uri="timer:test?period=1000"/>
+            <camel:log message="Test route running every second"/>
+        </camel:route>
+    </camel:camelContext>
 
 </beans>
+
