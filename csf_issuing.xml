@@ -1,0 +1,170 @@
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context" xmlns:rabbit="http://www.springframework.org/schema/rabbit" xmlns:util="http://www.springframework.org/schema/util" xmlns:lang="http://www.springframework.org/schema/lang" xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd http://www.springframework.org/schema/rabbit http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd ">
+<bean id="bridgePropertyPlaceholder" class="org.apache.camel.spring.spi.BridgePropertyPlaceholderConfigurer">
+<property name="ignoreResourceNotFound" value="true"/>
+<property name="locations">
+<list>
+<value>classpath:spring/camel-context.properties</value>
+</list>
+</property>
+</bean>
+<!-- Initiating groovy file for integration between SFM to VI for Confirmed Fraud Alerts -->
+<lang:groovy id="CSF_Mapping_Xml" script-source="classpath:groovy/csf_visa_mapping.groovy"/>
+<lang:groovy id="CSF_Realtime_Response" script-source="classpath:groovy/csf_realtime_response.groovy"/>
+<lang:groovy id="CSF_SAF_Response" script-source="classpath:groovy/csf_saf_response.groovy"/>
+<lang:groovy id="CSF_echo_Response" script-source="classpath:groovy/csf_response.groovy"/>
+<lang:groovy id="errorHandling_CSF" script-source="classpath:groovy/error_handling_csf.groovy"/>
+<camelContext xmlns="http://camel.apache.org/schema/spring" id="CSFIssuing">
+<errorHandler id="noErrorHandler" type="NoErrorHandler"/>
+<threadPoolProfile id="defaultThreadPoolProfile" defaultProfile="true" poolSize="10" maxPoolSize="20" maxQueueSize="1000" allowCoreThreadTimeOut="false" rejectedPolicy="CallerRuns"/>
+<restConfiguration component="jetty" host="{{csf_rest_hostname}}" port="{{csf_rest_listen_port}}" bindingMode="off" apiContextPath="api-docs" apiContextListing="true" enableCORS="true">
+<dataFormatProperty key="json.in.disableFeatures" value="FAIL_ON_UNKNOWN_PROPERTIES,ADJUST_DATES_TO_CONTEXT_TIME_ZONE"/>
+<dataFormatProperty key="json.in.enableFeatures" value="FAIL_ON_NUMBERS_FOR_ENUMS,USE_BIG_DECIMAL_FOR_FLOATS"/>
+<!--  we want json output in pretty mode  -->
+<dataFormatProperty key="prettyPrint" value="true"/>
+<!--  setup swagger api descriptions  -->
+<apiProperty key="api.version" value="1.0.0"/>
+<apiProperty key="api.title" value="EOP REST Services"/>
+<apiProperty key="api.description" value="EOP REST API to send trasaction"/>
+<apiProperty key="api.contact.name" value="SAS RAPTOR"/>
+<apiProperty key="host" value="localhost:{{csf_rest_listen_port}}"/>
+<apiProperty key="schemes" value="http,https"/>
+</restConfiguration>
+<rest apiDocs="false">
+<post uri="/CSF/RealTime">
+<route id="CSFRealtime">
+<log message="Request from CSF realtime before processing is: ${body}" loggingLevel="INFO"/>
+<setHeader headerName="msgMode">
+<xpath>/Request/Hdr/msgMode/text()</xpath>
+</setHeader>
+<choice>
+<when>
+<simple>${header.msgMode} == 'E' </simple>
+<log message="Request from CSF for heartbeat is: ${body}" loggingLevel="INFO"/>
+<bean ref="CSF_echo_Response" method="echoResponse"/>
+<log message="Message to CSF for realtime heartbeat is: ${body}" loggingLevel="INFO"/>
+</when>
+<when>
+<simple>${header.msgMode} == 'R' </simple>
+<log message="Request from CSF for realtime transactions is: ${body}" loggingLevel="INFO"/>
+<!--  Sending for message transformation  -->
+<to uri="direct:processTcpRequest"/>
+<log message="Message to CSF for realtime transaction is: ${body}" loggingLevel="INFO"/>
+</when>
+<otherwise>
+<log message="Request from CSF for is not matching the message mode: ${body}" loggingLevel="INFO"/>
+</otherwise>
+</choice>
+</route>
+</post>
+</rest>
+<rest apiDocs="false">
+<post uri="/CSF/HealthCheck">
+<route id="CSFEcho">
+<log message="Message from health seperate API is: ${body}" loggingLevel="INFO"/>
+<bean ref="CSF_echo_Response" method="echoResponse"/>
+</route>
+</post>
+</rest>
+<route id="processCSFRequest" startupOrder="43">
+<from uri="direct:processTcpRequest"/>
+<!--  Calling csf_visa_mapping groovy for reading request from CSF  -->
+<bean ref="CSF_Mapping_Xml" method="CSF_Xml_Mapping"/>
+<log message="Content of body after mapping in groovy : ${body}" loggingLevel="INFO"/>
+<setHeader headerName="csvId">
+<constant>CSF_Field_Mapping</constant>
+</setHeader>
+<setHeader headerName="delimiter">
+<constant>,</constant>
+</setHeader>
+<setHeader headerName="format">
+<constant>csv</constant>
+</setHeader>
+<setHeader headerName="mapperId">
+<constant>CSF_MAP</constant>
+</setHeader>
+<setHeader headerName="useSrcMap">
+<constant>NO</constant>
+</setHeader>
+<to id="general_route_logger" uri="log:reporter?level=INFO&groupInterval=5000&groupDelay=5000"/>
+<convertBodyTo type="java.lang.String"/>
+<log message="Content of body after mapping in SFM Jar files: ${body}" loggingLevel="INFO"/>
+<doTry>
+<bean ref="odeUtils" method="decodeWebString"/>
+<to uri="direct:requestDispatcher"/>
+<doCatch>
+<exception>com.sas.finance.fraud.transaction.field.Field$EncodeException</exception>
+<bean ref="errorHandling" method="errorMessageJson"/>
+<stop/>
+</doCatch>
+</doTry>
+<log message="Content of body after response from SFM : ${body}" loggingLevel="INFO"/>
+<bean ref="txnToJsonString"/>
+<log message="Content of body after response from SFM is converted to JSON: ${body}" loggingLevel="INFO"/>
+<choice>
+<when>
+<simple>${header.msgMode} == 'R'</simple>
+<!--  Logic for real-time TCP endpoint  -->
+<bean ref="CSF_Realtime_Response" method="realTimeResponse"/>
+</when>
+<when>
+<simple>${header.msgMode} == 'N'</simple>
+<!--  Logic for SAF TCP endpoint  -->
+<bean ref="CSF_SAF_Response" method="safResponse"/>
+</when>
+<otherwise>
+<!--  Handle any other cases or provide a default response  -->
+<log message="Unknown endpoint type: ${header.EndpointType}"/>
+</otherwise>
+</choice>
+</route>
+<route id="Dispatcher" startupOrder="42">
+<from uri="direct:requestDispatcher"/>
+<doTry>
+<bean ref="requestDispatcher" method="process"/>
+<bean id="StoreUnqKeyFor_format" ref="uniqueKeySaver"/>
+<to uri="disruptor:sendTransactionToODE?timeout={{sla_timeout}}&waitForTaskToComplete=Always"/>
+</doTry>
+</route>
+<route id="coreHandler" startupOrder="41" errorHandlerRef="noErrorHandler">
+<from uri="disruptor:sendTransactionToODE?concurrentConsumers=8"/>
+<onCompletion>
+<to uri="seda:collectPerfData"/>
+</onCompletion>
+<bean id="setTransactionId" ref="setTransactionId"/>
+<bean ref="customExchangeTracker" method="startLogging"/>
+<bean id="validation" ref="xtionValidator" method="validate"/>
+<doTry>
+<loadBalance id="ODE Load Balancer" inheritErrorHandler="false">
+<custom ref="odeLoadBalancer"/>
+<to id="sfmdemo1" uri="netty4:tcp://{{ode_host_5}}:5018?sync=true&encoder=#encoder&decoder=#decoder"/>
+<to id="sfmdemo2" uri="netty4:tcp://{{ode_host_6}}:5018?sync=true&encoder=#encoder&decoder=#decoder"/>
+<to id="sfmdemo3" uri="netty4:tcp://{{ode_host_7}}:5018?sync=true&encoder=#encoder&decoder=#decoder"/>
+</loadBalance>
+<doCatch>
+<exception>java.net.ConnectException</exception>
+<exception>java.lang.RuntimeException</exception>
+<setProperty propertyName="errorContent">
+<simple>${exception.message}</simple>
+</setProperty>
+<bean ref="errorHandling" method="errorMessageJson"/>
+<stop/>
+<to uri="direct:handleSendError"/>
+</doCatch>
+</doTry>
+<bean ref="customExchangeTracker" method="endLogging"/>
+<bean id="cacheResponseForStandIn" ref="requestTimeoutHandler" method="handleSuccess"/>
+</route>
+<route id="handleSendError" startupOrder="40">
+<from uri="direct:handleSendError"/>
+<doTry>
+<!-- <bean ref="saf" method="store"/> -->
+<to uri="log:?level=ERROR"/>
+<doCatch>
+<!--  Exception thrown from here can cause errors recursively, we'd better catch it.  -->
+<exception>java.lang.Throwable</exception>
+<to uri="log:?level=ERROR"/>
+</doCatch>
+</doTry>
+</route>
+</camelContext>
+</beans>
