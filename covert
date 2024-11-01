@@ -1,0 +1,17 @@
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
+
+public class TransactionProcessor implements Processor {
+    @Override
+    public void process(Exchange exchange) throws Exception {
+        // Get the incoming transaction as a String
+        String message = exchange.getIn().getBody(String.class);
+        System.out.println("Length of message received from AHB is: " + message.length());
+        
+        // Convert the message to bytes
+        byte[] messageBytes = message.getBytes("UTF-8");
+        
+        // Set the byte array as the new body
+        exchange.getIn().setBody(messageBytes);
+    }
+}
