@@ -1,0 +1,69 @@
+<?xml version="1.0"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    targetNamespace="https://www.sas.com/sfm/ol"
+    xmlns="https://www.sas.com/sfm/ol"
+    elementFormDefault="qualified">
+
+    <xs:element name="application">
+       <xs:complexType>
+           <xs:sequence>
+                <xs:element name="messages" type="messagesDef"/>
+           </xs:sequence>
+       </xs:complexType>
+    </xs:element>
+
+    <xs:complexType name="messagesDef">
+        <xs:sequence>
+            <xs:element name="message" type="messageDef" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+    
+    <xs:complexType name="messageDef">
+        <xs:sequence>
+            <xs:element name="fields" type="fieldsDef"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="fieldsDef">
+        <xs:sequence>
+            <xs:element name="field" type="fieldDef" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="fieldDef">
+        <xs:sequence>
+            <xs:choice>
+                <xs:element name="srcField" type="srcFieldDef" minOccurs="0" maxOccurs="1"/>
+                <xs:element name="constant" type="xs:string" minOccurs="0" maxOccurs="1"/>
+                <xs:element name="dbField" type="dbRedisMiningFieldDef" minOccurs="0" maxOccurs="1"/>
+                <xs:element name="redisField" type="dbRedisMiningFieldDef" minOccurs="0" maxOccurs="1"/>
+                <xs:element name="miningField" type="dbRedisMiningFieldDef" minOccurs="0" maxOccurs="1"/>
+            </xs:choice>
+        </xs:sequence>
+        <xs:attributeGroup ref="basicAttributes"/>
+    </xs:complexType>
+
+    <xs:complexType name="srcFieldDef">
+            <xs:sequence>
+                 <xs:element name="groovy" type="xs:string" minOccurs="0"/>
+            </xs:sequence>
+            <xs:attributeGroup ref="basicAttributes"/>
+    </xs:complexType>
+
+    <xs:complexType name="dbRedisMiningFieldDef">
+            <xs:sequence>
+                <xs:element name="groovy" type="xs:string" minOccurs="1"/>
+            </xs:sequence>
+            <xs:attribute name="rscName" type="xs:string" use="required"/>
+            <xs:attribute name="name" type="xs:string"/>
+            <xs:attribute name="default" type="xs:string"/>
+            <xs:attribute name="override" type="xs:string"/>
+    </xs:complexType>
+
+    <xs:attributeGroup name="basicAttributes">
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="default" type="xs:string"/>
+            <xs:attribute name="override" type="xs:string"/>
+    </xs:attributeGroup>
+
+</xs:schema>
