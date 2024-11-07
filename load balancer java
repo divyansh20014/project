@@ -36,3 +36,80 @@
         }
         return false;  // If no server is available after full round
     }
+
+/* Another Logic */
+
+import java.io.IOException;
+import java.net.Socket;
+import java.net.InetSocketAddress;
+import java.util.LinkedList;
+import java.util.Queue;
+
+public class TcpLoadBalancerWithQueue {
+
+    // Define server list: (host, port)
+    private static Queue<String> serverQueue = new LinkedList<>();
+    private static int port = 12345;  // Example port
+    private static int timeout = 5000;  // Timeout for socket connection in milliseconds
+    private static int maxRetries = 3;  // Maximum retries for a server
+
+    public static void main(String[] args) {
+        // Add servers to the queue (these can be IPs or hostnames)
+        serverQueue.add("server1.com");
+        serverQueue.add("server2.com");
+        serverQueue.add("server3.com");
+
+        // Cycle through the queue and keep trying to connect until a success or max retry count
+        int attemptCount = 0;
+        while (!serverQueue.isEmpty() && attemptCount < 100) { // Avoid infinite loops
+            String currentServer = serverQueue.poll();  // Fetch the next server from the queue
+
+            System.out.println("Attempting to connect to " + currentServer);
+
+            boolean success = tryConnect(currentServer);
+            if (success) {
+                System.out.println("Successfully connected to " + currentServer);
+            } else {
+                System.out.println("Failed to connect to " + currentServer + ". Retrying in the next cycle.");
+                serverQueue.add(currentServer);  // Add the failed server back to the queue
+            }
+
+            // Increment attempt count to prevent endless loops if there are persistent failures
+            attemptCount++;
+            try {
+                Thread.sleep(1000);  // Pause for 1 second before retrying (optional)
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+
+        if (serverQueue.isEmpty()) {
+            System.out.println("All servers are successfully connected.");
+        } else {
+            System.out.println("Some servers failed to connect after multiple retries.");
+        }
+    }
+
+    // Try to connect to a server and return true if successful
+    private static boolean tryConnect(String server) {
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try (Socket socket = new Socket()) {
+                System.out.println("Attempting to connect to " + server + " (Attempt " + attempt + ")");
+                socket.connect(new InetSocketAddress(server, port), timeout);
+
+                // If connected successfully, return true
+                System.out.println("Connected to " + server + " successfully.");
+                return true;
+
+            } catch (IOException e) {
+                System.out.println("Failed to connect to " + server + " on attempt " + attempt + ": " + e.getMessage());
+                // If this is the last attempt and it fails, we return false
+                if (attempt == maxRetries) {
+                    System.out.println("Server " + server + " is down after " + maxRetries + " attempts.");
+                    return false;
+                }
+            }
+        }
+        return false;  // Return false if all retry attempts failed
+    }
+}
