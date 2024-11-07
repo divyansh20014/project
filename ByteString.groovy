@@ -63,3 +63,28 @@ public class StringToByteBufProcessor{
 
         return byteArrayOutputStream.toByteArray();
     }
+
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+ 
+private static ByteBuf convertTransactionToByteBuf(Transaction txn, LengthCodec lc) throws Exception {
+    // Calculate the total transaction length and allocate a ByteBuf
+    int txnLength = txn.getLength();
+    ByteBuf byteBuf = Unpooled.buffer(txnLength + lc.getEncodedLength(txnLength)); // Add extra space for length prefix
+ 
+    // Write the length prefix using LengthCodec
+    ByteBuffer lengthBuffer = ByteBuffer.allocate(lc.getEncodedLength(txnLength));
+    lc.writeLength(lengthBuffer, txnLength);
+    byteBuf.writeBytes(lengthBuffer.array());
+ 
+    // Write each segment into the ByteBuf
+    for (SegmentType type : SegmentType.values()) {
+        byte[] bytes = txn.getSegment(type);
+        if (bytes != null) {
+            byteBuf.writeBytes(bytes);
+        }
+    }
+ 
+    return byteBuf;
+}
