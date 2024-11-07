@@ -1,0 +1,38 @@
+   private static List<String> odeServers = Arrays.asList(
+            "ode-server1.example.com", "ode-server2.example.com", "ode-server3.example.com");
+    private static int odePort = 5018;
+
+    // Queue of servers for failover
+    private static Queue<String> serverQueue = new LinkedList<>(odeServers);
+
+    // Socket and streams
+    private static Socket socket = null;
+    private static InputStream inputStream = null;
+    private static OutputStream outputStream = null;
+
+    /**
+     * Tries to connect to the next available server in the list.
+     * If a server fails, it moves to the next one in the list.
+     */
+    private static boolean connectWithFailover() {
+        String server;
+        int attempts = 0;
+
+        // Continue trying the servers until one works
+        while (attempts < odeServers.size()) {
+            server = serverQueue.poll();  // Get the next server in the queue
+
+            try {
+                socket = new Socket(server, odePort);  // Try to connect to the server
+                System.out.println("Connected to server: " + server);
+                serverQueue.offer(server);  // Re-add server to the back of the queue for future retries
+                return true;
+            } catch (Exception e) {
+                System.out.println("Failed to connect to server " + server + ": " + e.getMessage());
+                // Move the failed server to the back of the queue to retry it later
+                serverQueue.offer(server);  
+                attempts++;
+            }
+        }
+        return false;  // If no server is available after full round
+    }
