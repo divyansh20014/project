@@ -1,115 +1,209 @@
-   private static List<String> odeServers = Arrays.asList(
-            "ode-server1.example.com", "ode-server2.example.com", "ode-server3.example.com");
-    private static int odePort = 5018;
+import java.io.*;
+import java.net.*;
+import java.util.*;
+import org.apache.log4j.Logger;
+import org.apache.camel.Exchange;
+import org.json.JSONObject;
 
-    // Queue of servers for failover
-    private static Queue<String> serverQueue = new LinkedList<>(odeServers);
+public class JsonMapping {
 
-    // Socket and streams
+    // Existing fields and variables
+    public String AccountNumber = "", OrganizationName = "", ActualTransactionDateTime = "", AutheticationMethod = "", BeneficiaryAccountNumber = "", BeneficiaryBankCountryCode = "", BeneficiaryBankName = "", BeneficiaryCountry = "", BeneficiaryID = "", BeneficiaryName = "", BeneficiaryType = "", ChannelDailyLimit = "", CasaBalance = "", CarrierCountry = "", DeviceIdValue = "", DeviceName = "", Platform = "", IsStaff = "", ClientIPAddress = "", AmountInTransactionCurrency = "", AmountInAED = "", TransactionCurrencyCode = "", TransactionDescription = "", Action = "", CustomerID = "", tranDate = "", tranTime = "";
+
+    public static String odeHost;
+    public static int odePort;
+    public static String useSSL;
+
     private static Socket socket = null;
     private static InputStream inputStream = null;
     private static OutputStream outputStream = null;
 
-    /**
-     * Tries to connect to the next available server in the list.
-     * If a server fails, it moves to the next one in the list.
-     */
-    private static boolean connectWithFailover() {
-        String server;
-        int attempts = 0;
+    private static Logger logger = Logger.getLogger(JsonMapping.class);
 
-        // Continue trying the servers until one works
-        while (attempts < odeServers.size()) {
-            server = serverQueue.poll();  // Get the next server in the queue
-
-            try {
-                socket = new Socket(server, odePort);  // Try to connect to the server
-                System.out.println("Connected to server: " + server);
-                serverQueue.offer(server);  // Re-add server to the back of the queue for future retries
-                return true;
-            } catch (Exception e) {
-                System.out.println("Failed to connect to server " + server + ": " + e.getMessage());
-                // Move the failed server to the back of the queue to retry it later
-                serverQueue.offer(server);  
-                attempts++;
-            }
-        }
-        return false;  // If no server is available after full round
-    }
-
-/* Another Logic */
-
-import java.io.IOException;
-import java.net.Socket;
-import java.net.InetSocketAddress;
-import java.util.LinkedList;
-import java.util.Queue;
-
-public class TcpLoadBalancerWithQueue {
-
-    // Define server list: (host, port)
+    // The Load Balancer logic is now here.
     private static Queue<String> serverQueue = new LinkedList<>();
-    private static int port = 12345;  // Example port
     private static int timeout = 5000;  // Timeout for socket connection in milliseconds
     private static int maxRetries = 3;  // Maximum retries for a server
+    private static int maxCycles = 10; // Maximum number of cycles to prevent infinite loop
 
-    public static void main(String[] args) {
-        // Add servers to the queue (these can be IPs or hostnames)
+    // Initialize server list
+    static {
         serverQueue.add("server1.com");
         serverQueue.add("server2.com");
         serverQueue.add("server3.com");
+    }
 
-        // Cycle through the queue and keep trying to connect until a success or max retry count
+    // Connect to the server using load balancer logic
+    private static boolean connectUsingLoadBalancer() throws Exception {
         int attemptCount = 0;
-        while (!serverQueue.isEmpty() && attemptCount < 100) { // Avoid infinite loops
+        while (!serverQueue.isEmpty() && attemptCount < maxCycles) {
             String currentServer = serverQueue.poll();  // Fetch the next server from the queue
-
-            System.out.println("Attempting to connect to " + currentServer);
+            logger.info("Attempting to connect to " + currentServer);
 
             boolean success = tryConnect(currentServer);
             if (success) {
-                System.out.println("Successfully connected to " + currentServer);
+                logger.info("Successfully connected to " + currentServer);
+                return true;
             } else {
-                System.out.println("Failed to connect to " + currentServer + ". Retrying in the next cycle.");
-                serverQueue.add(currentServer);  // Add the failed server back to the queue
+                logger.error("Failed to connect to " + currentServer + ". Retrying in the next cycle.");
+                serverQueue.add(currentServer);  // Add the failed server back to the queue for next retry cycle
             }
 
-            // Increment attempt count to prevent endless loops if there are persistent failures
-            attemptCount++;
+            attemptCount++; // Increment attempt count
             try {
-                Thread.sleep(1000);  // Pause for 1 second before retrying (optional)
+                Thread.sleep(1000);  // Optional delay before retrying (to simulate backoff)
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
         }
 
-        if (serverQueue.isEmpty()) {
-            System.out.println("All servers are successfully connected.");
-        } else {
-            System.out.println("Some servers failed to connect after multiple retries.");
-        }
+        logger.error("All servers failed to connect after multiple retries.");
+        return false;
     }
 
     // Try to connect to a server and return true if successful
     private static boolean tryConnect(String server) {
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try (Socket socket = new Socket()) {
-                System.out.println("Attempting to connect to " + server + " (Attempt " + attempt + ")");
-                socket.connect(new InetSocketAddress(server, port), timeout);
+                logger.info("Attempting to connect to " + server + " (Attempt " + attempt + ")");
+                socket.connect(new InetSocketAddress(server, odePort), timeout);
 
                 // If connected successfully, return true
-                System.out.println("Connected to " + server + " successfully.");
+                logger.info("Connected to " + server + " successfully.");
+                JsonMapping.socket = socket;  // Use this socket for subsequent communication
                 return true;
 
             } catch (IOException e) {
-                System.out.println("Failed to connect to " + server + " on attempt " + attempt + ": " + e.getMessage());
+                logger.error("Failed to connect to " + server + " on attempt " + attempt + ": " + e.getMessage());
                 // If this is the last attempt and it fails, we return false
                 if (attempt == maxRetries) {
-                    System.out.println("Server " + server + " is down after " + maxRetries + " attempts.");
+                    logger.error("Server " + server + " failed after " + maxRetries + " attempts.");
                     return false;
                 }
             }
         }
         return false;  // Return false if all retry attempts failed
+    }
+
+    // Method to create input/output streams
+    private static void createStreams() throws Exception {
+        inputStream = new BufferedInputStream(socket.getInputStream());
+        outputStream = new BufferedOutputStream(socket.getOutputStream());
+        logger.info("Streams opened.");
+    }
+
+    // Method to close streams and socket
+    private static void closeStreams() throws Exception {
+        inputStream.close();
+        outputStream.close();
+        socket.close();
+        logger.info("Streams closed.");
+    }
+
+    // Method to process the transaction (same as in your original code)
+    private static void processTransaction() throws Exception {
+        // Reuse the existing code for creating and processing the transaction
+        // ...
+    }
+
+    // Method to send transaction data
+    private static void send(LengthCodec lc, Transaction txn) throws Exception {
+        lc.writeLength(outputStream, txn.getLength());
+
+        for (SegmentType type : SegmentType.values()) {
+            byte[] bytes = txn.getSegment(type);
+            if (bytes != null) {
+                outputStream.write(bytes, 0, bytes.length);
+            }
+        }
+        outputStream.flush();
+    }
+
+    // Method to receive response
+    private static Transaction recv(LengthCodec lc, MessageApiEncoding apie) throws Exception {
+        Transaction txn = new Transaction(apie);
+        int txnLen = lc.readLength(inputStream);
+
+        do {
+            Segment seg = apie.peekSegment(inputStream, 0);
+            int segLen = seg.getLength(inputStream, apie.encoding);
+            txn.updateSegment(inputStream, seg, segLen);
+            txnLen -= segLen;
+        } while (txnLen > 0);
+
+        return txn;
+    }
+
+    // jsonMapping method modified to include load balancing
+    public String jsonMapping(Exchange exchange) {
+        String timestamp = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss.SSS").format(new java.util.Date());
+        logger.info("Message received from ATB Acquiring: " + timestamp);
+
+        String textJson = exchange.getIn().getBody(String.class);
+
+        // Check if the JSON string is not empty
+        if (textJson != null && !textJson.isEmpty()) {
+            // Parse the JSON string
+            JSONObject jsonObject = new JSONObject(textJson);
+
+            // Assuming txn is your transaction object and the field names are the ones you want to encode
+            AccountNumber = jsonObject.optString("AccountNumber", "");
+            OrganizationName = jsonObject.optString("OrganizationName", "");
+            ActualTransactionDateTime = jsonObject.optString("ActualTransactionDateTime", "");
+            AutheticationMethod = jsonObject.optString("AutheticationMethod", "");
+            BeneficiaryAccountNumber = jsonObject.optString("BeneficiaryAccountNumber", "");
+            BeneficiaryBankCountryCode = jsonObject.optString("BeneficiaryBankCountryCode", "");
+            BeneficiaryBankName = jsonObject.optString("BeneficiaryBankName", "");
+            BeneficiaryCountry = jsonObject.optString("BeneficiaryCountry", "");
+            BeneficiaryID = jsonObject.optString("BeneficiaryID", "");
+            BeneficiaryName = jsonObject.optString("BeneficiaryName", "");
+            BeneficiaryType = jsonObject.optString("BeneficiaryType", "");
+            ChannelDailyLimit = jsonObject.optString("ChannelDailyLimit", "");
+            CasaBalance = jsonObject.optString("CasaBalance", "");
+            CarrierCountry = jsonObject.optString("CarrierCountry", "");
+            DeviceIdValue = jsonObject.optString("DeviceIdValue", "");
+            DeviceName = jsonObject.optString("DeviceName", "");
+            Platform = jsonObject.optString("Platform", "");
+            IsStaff = jsonObject.optString("IsStaff", "");
+            ClientIPAddress = jsonObject.optString("ClientIPAddress", "");
+            AmountInTransactionCurrency = jsonObject.optString("AmountInTransactionCurrency", "");
+            AmountInAED = jsonObject.optString("AmountInAED", "");
+            TransactionCurrencyCode = jsonObject.optString("TransactionCurrencyCode", "");
+            TransactionDescription = jsonObject.optString("TransactionDescription", "");
+            Action = jsonObject.optString("Action", "");
+            CustomerID = jsonObject.optString("CustomerID", "");
+
+            try {
+                // Parse the ActualTransactionDateTime field to extract date and time
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                Date date = sdf.parse(ActualTransactionDateTime);
+                SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                tranDate = dateFormat.format(date);
+                SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss.SSS");
+                tranTime = timeFormat.format(date);
+                logger.info("Date: " + tranDate + ", Time: " + tranTime);
+            } catch (ParseException e) {
+                e.printStackTrace();
+            }
+
+            try {
+                // Connect to server using load balancer
+                if (connectUsingLoadBalancer()) {
+                    logger.info("Connection established using load balancer.");
+
+                    // Create streams and process the transaction
+                    createStreams();
+                    processTransaction();
+                    closeStreams();
+                    logger.info("Transaction processed and connection closed.");
+                } else {
+                    logger.error("Failed to connect using load balancer.");
+                }
+            } catch (Exception e) {
+                logger.error("Exception: " + e);
+            }
+        }
+
+        return "Processed"; // Return any relevant response
     }
 }
