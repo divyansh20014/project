@@ -88,3 +88,20 @@ private static ByteBuf convertTransactionToByteBuf(Transaction txn, LengthCodec 
  
     return byteBuf;
 }
+
+ public static ByteBuf convertTransactionToByteBuf(Transaction txn) throws Exception {
+        // Aggregate all segments into a single byte array
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+        for (SegmentType type : SegmentType.values()) {
+            byte[] segmentBytes = txn.getSegment(type);
+
+            if (segmentBytes != null) {
+                byteArrayOutputStream.write(segmentBytes);
+            }
+        }
+
+        // Convert the aggregated byte array into a ByteBuf
+        byte[] transactionBytes = byteArrayOutputStream.toByteArray();
+        return Unpooled.wrappedBuffer(transactionBytes);
+    }
