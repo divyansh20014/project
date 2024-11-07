@@ -1,5 +1,4 @@
 public class JsonMapping {
-
   
     public String AccountNumber = "", OrganizationName = "", ActualTransactionDateTime = "",
             AutheticationMethod = "", BeneficiaryAccountNumber = "", BeneficiaryBankCountryCode = "",
