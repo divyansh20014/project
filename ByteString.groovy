@@ -46,4 +46,20 @@ public class StringToByteBufProcessor{
 
 
 
+    public static byte[] getTransactionBytes(Transaction txn) throws IOException {
+        ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
+        // Write the length of the transaction (if needed, use a method to write the length)
+        LengthCodec lc = LengthCodec.PREPEND2;
+        lc.writeLength(byteArrayOutputStream, txn.getLength());
+
+        // Iterate over each segment and write the bytes to the output stream
+        for (SegmentType segmentType : SegmentType.values()) {
+            byte[] segmentBytes = txn.getSegment(segmentType);
+            if (segmentBytes != null) {
+                byteArrayOutputStream.write(segmentBytes);
+            }
+        }
+
+        return byteArrayOutputStream.toByteArray();
+    }
