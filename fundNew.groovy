@@ -1,6 +1,6 @@
 public class JsonMapping {
 
-    // Define fields
+  
     public String AccountNumber = "", OrganizationName = "", ActualTransactionDateTime = "",
             AutheticationMethod = "", BeneficiaryAccountNumber = "", BeneficiaryBankCountryCode = "",
             BeneficiaryBankName = "", BeneficiaryCountry = "", BeneficiaryID = "", BeneficiaryName = "",
