@@ -105,3 +105,45 @@ private static ByteBuf convertTransactionToByteBuf(Transaction txn, LengthCodec 
         byte[] transactionBytes = byteArrayOutputStream.toByteArray();
         return Unpooled.wrappedBuffer(transactionBytes);
     }
+public static ByteBuf convertTransactionToByteBuf(Transaction txn) throws Exception {
+    // Aggregate all segments into a single byte array
+    ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+
+    for (SegmentType type : SegmentType.values()) {
+        byte[] segmentBytes = txn.getSegment(type);
+
+        if (segmentBytes != null) {
+            // Convert segment bytes to a string to filter non-printable characters
+            StringBuilder filteredSegment = new StringBuilder();
+            for (byte b : segmentBytes) {
+                int character = b & 0xFF; // Convert byte to unsigned int
+                filteredSegment.append((char) replaceNonPrintableCharacterByWhitespace(character));
+            }
+
+            // Convert the filtered string back to bytes in UTF-8
+            byte[] filteredBytes = filteredSegment.toString().getBytes("UTF-8");
+            byteArrayOutputStream.write(filteredBytes);
+        }
+    }
+
+    // Convert the aggregated byte array into a ByteBuf
+    byte[] transactionBytes = byteArrayOutputStream.toByteArray();
+    return Unpooled.wrappedBuffer(transactionBytes);
+}
+
+private static final int WS = 32; // ASCII for space
+
+private static int replaceNonPrintableCharacterByWhitespace(int character) {
+    // Add your non-printable character list or use the provided one
+    final char[] NON_PRINTABLE_EBCDIC_CHARS = new char[] {
+        0x00, 0x01, 0x02, 0x03, 0x9C, 0x09, 0x86, 0x7F, 0x97, 0x8D, 0x8E,
+        // Add additional non-printable characters as needed
+    };
+
+    for (char nonPrintableChar : NON_PRINTABLE_EBCDIC_CHARS) {
+        if (nonPrintableChar == (char) character) {
+            return WS; // Replace with whitespace
+        }
+    }
+    return character; // Return original if printable
+}
