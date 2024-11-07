@@ -1,3 +1,14 @@
+public class JsonMapping {
+
+    // Define fields
+    public String AccountNumber = "", OrganizationName = "", ActualTransactionDateTime = "",
+            AutheticationMethod = "", BeneficiaryAccountNumber = "", BeneficiaryBankCountryCode = "",
+            BeneficiaryBankName = "", BeneficiaryCountry = "", BeneficiaryID = "", BeneficiaryName = "",
+            BeneficiaryType = "", ChannelDailyLimit = "", CasaBalance = "", CarrierCountry = "",
+            DeviceIdValue = "", DeviceName = "", Platform = "", IsStaff = "", ClientIPAddress = "",
+            AmountInTransactionCurrency = "", AmountInAED = "", TransactionCurrencyCode = "",
+            TransactionDescription = "", Action = "", CustomerID = "", tranDate = "", tranTime = "";
+
 public void jsonToTransaction(Exchange exchange) {
     // Get the incoming JSON from the Camel exchange
     String textJson = exchange.getIn().getBody(String.class);
