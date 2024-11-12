@@ -1,0 +1,67 @@
+<route>
+    <from uri="jetty:http://0.0.0.0:8000/evaluateRiskFinancial"/>
+    
+    <!-- Validate credentials -->
+    <setHeader name="Authorization">
+        <simple>${header.Authorization}</simple>
+    </setHeader>
+
+    <choice>
+        <when>
+            <!-- Check if Authorization header matches the expected value -->
+            <simple>${header.Authorization} == 'Basic YWRiYXBpY2xyZW5kZXI='</simple>
+            <log message="Authorized access" loggingLevel="INFO"/>
+
+            <bean ref="fetchAction" method="processAction"/>
+            <to uri="direct:LoadBalancerRoute"/>
+        </when>
+        
+        <otherwise>
+            <!-- Unauthorized, return 401 error response -->
+            <log message="Unauthorized access attempt" loggingLevel="WARN"/>
+            
+            <!-- Use the UnauthorizedErrorHandler bean to generate the response -->
+            <bean ref="unauthorizedErrorHandler" method="generateUnauthorizedResponse"/>
+            
+            <!-- Set the HTTP Status code to 401 -->
+            <setHeader name="HTTP_RESPONSE_CODE">
+                <constant>401</constant>
+            </setHeader>
+
+            <!-- Send the error response (body is already set by the bean) -->
+            <to uri="direct:sendResponse"/>
+        </otherwise>
+    </choice>
+</route>
+
+
+
+import org.apache.camel.Exchange;
+import java.util.UUID;
+
+public class UnauthorizedErrorHandler {
+
+    // Method to generate the 401 error response and set it in the Exchange body
+    public void generateUnauthorizedResponse(Exchange exchange) {
+        // Generate a unique ID for the error
+        String id = UUID.randomUUID().toString();
+
+        // Construct the error response as a JSON string according to the schema
+        String errorResponse = "{\n" +
+                "    \"Code\": \"API401\",\n" +
+                "    \"Id\": \"" + id + "\",\n" +
+                "    \"Message\": \"Unauthorized\",\n" +
+                "    \"Errors\": [\n" +
+                "        {\n" +
+                "            \"ErrorCode\": \"401\",\n" +  // ErrorCode is set to 401
+                "            \"Message\": \"Invalid or missing credentials.\",\n" +  // Custom error message
+                "            \"Path\": \"/api/financial/transaction\",\n" +  // Example Path (can be customized)
+                "            \"Url\": \"https://yourapi.com/docs/authorization-error\"\n"  // Example URL for further explanation
+                "        }\n" +
+                "    ]\n" +
+                "}";
+
+        // Set the error response in the Exchange body
+        exchange.getIn().setBody(errorResponse);
+    }
+}
