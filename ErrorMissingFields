@@ -1,0 +1,96 @@
+import org.apache.camel.Exchange;
+import java.util.UUID;
+
+public class BadRequestErrorHandler {
+
+    // Method to generate the 400 error response if required fields are missing
+    public void generateBadRequestResponse(Exchange exchange) {
+        // Generate a unique ID for the error
+        String id = UUID.randomUUID().toString();
+
+        // Check which fields are missing
+        StringBuilder errors = new StringBuilder();
+
+        if (exchange.getIn().getHeader("CustomerID") == null) {
+            errors.append("{\n" +
+                    "    \"ErrorCode\": \"400\",\n" +
+                    "    \"Message\": \"CustomerId is Required\",\n" +
+                    "    \"Path\": \"\",\n" +
+                    "    \"Url\": \"\"\n" +
+                    "},\n");
+        }
+
+        if (exchange.getIn().getHeader("EFMSChannelReferenceNumber") == null) {
+            errors.append("{\n" +
+                    "    \"ErrorCode\": \"400\",\n" +
+                    "    \"Message\": \"EFMSChannelReferenceNumber is Required\",\n" +
+                    "    \"Path\": \"\",\n" +
+                    "    \"Url\": \"\"\n" +
+                    "},\n");
+        }
+
+        if (exchange.getIn().getHeader("Action") == null) {
+            errors.append("{\n" +
+                    "    \"ErrorCode\": \"400\",\n" +
+                    "    \"Message\": \"Action is Required\",\n" +
+                    "    \"Path\": \"\",\n" +
+                    "    \"Url\": \"\"\n" +
+                    "}\n");
+        }
+
+        // If there are missing fields, build the error response
+        if (errors.length() > 0) {
+            // Remove the trailing comma
+            if (errors.charAt(errors.length() - 2) == ',') {
+                errors.delete(errors.length() - 2, errors.length());
+            }
+
+            // Construct the error response
+            String errorResponse = "{\n" +
+                    "    \"Code\": \"API400\",\n" +
+                    "    \"Id\": \"" + id + "\",\n" +
+                    "    \"Message\": \"Bad or Missing Request Parameters\",\n" +
+                    "    \"Errors\": [\n" +
+                    errors.toString() +
+                    "    ]\n" +
+                    "}";
+
+            // Set the error response in the Exchange body
+            exchange.getIn().setBody(errorResponse);
+        }
+    }
+}
+
+
+<route>
+    <from uri="jetty:http://0.0.0.0:8000/evaluateRiskFinancial"/>
+    
+    <!-- Validate that required fields are present -->
+    <choice>
+        <when>
+            <!-- Check if CustomerID, EFMSChannelReferenceNumber, and Action are present -->
+            <simple>${header.CustomerID} != null and ${header.EFMSChannelReferenceNumber} != null and ${header.Action} != null</simple>
+            
+            <!-- Process the valid request -->
+            <log message="Valid request, processing..." loggingLevel="INFO"/>
+            <bean ref="fetchAction" method="processAction"/>
+            <to uri="direct:LoadBalancerRoute"/>
+        </when>
+        
+        <otherwise>
+            <!-- Missing required fields, return 400 error response -->
+            <log message="Missing required fields in the request, sending error response." loggingLevel="WARN"/>
+            
+            <!-- Use the BadRequestErrorHandler bean to generate the response -->
+            <bean ref="badRequestErrorHandler" method="generateBadRequestResponse"/>
+            
+            <!-- Set the HTTP Status code to 400 -->
+            <setHeader name="HTTP_RESPONSE_CODE">
+                <constant>400</constant>
+            </setHeader>
+
+            <!-- Send the error response (body is already set by the bean) -->
+            <to uri="direct:sendResponse"/>
+        </otherwise>
+    </choice>
+</route>
