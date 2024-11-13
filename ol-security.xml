@@ -1,41 +1,36 @@
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="
-           http://www.springframework.org/schema/beans 
-           http://www.springframework.org/schema/beans/spring-beans.xsd">
-
-    <!-- Define a minimal SSL context parameters bean -->
-    <bean id="sslContextParameters" class="org.apache.camel.support.jsse.SSLContextParameters">
-        <property name="keyManagers">
-            <bean class="org.apache.camel.support.jsse.KeyManagersParameters">
-                <property name="keyPassword" value="{{keyPassword}}"/>
-                <property name="keyStore">
-                    <bean class="org.apache.camel.support.jsse.KeyStoreParameters">
-                        <property name="resource" value="{{serverKeystore}}"/>
-                        <property name="password" value="{{keystorePassword}}"/>
-                    </bean>
-                </property>
-            </bean>
-        </property>
-        <property name="trustManagers">
-            <bean class="org.apache.camel.support.jsse.TrustManagersParameters">
-                <property name="keyStore">
-                    <bean class="org.apache.camel.support.jsse.KeyStoreParameters">
-                        <property name="resource" value="{{serverTruststore}}"/>
-                        <property name="password" value="{{truststorePassword}}"/>
-                    </bean>
-                </property>
-            </bean>
-        </property>
-        <property name="serverParameters">
-            <bean class="org.apache.camel.support.jsse.ServerParameters">
-                <property name="clientAuthentication" value="REQUIRE"/>
-            </bean>
-        </property>
+<bean id="keyStore" class="org.apache.camel.util.jsse.KeyStoreParameters">
+        <property name="resource" value="file:/path/to/keystore.jks" />
+        <property name="password" value="keystorePassword" />
     </bean>
 
-</beans>
+    <!-- Key Manager Configuration -->
+    <bean id="keyManagers" class="org.apache.camel.util.jsse.KeyManagersParameters">
+        <property name="keyStore" ref="keyStore" />
+        <property name="keyPassword" value="keyPassword" />
+    </bean>
 
+    <!-- Truststore Configuration -->
+    <bean id="trustStore" class="org.apache.camel.util.jsse.KeyStoreParameters">
+        <property name="resource" value="file:/path/to/truststore.jks" />
+        <property name="password" value="truststorePassword" />
+    </bean>
+
+    <!-- Trust Manager Configuration -->
+    <bean id="trustManagers" class="org.apache.camel.util.jsse.TrustManagersParameters">
+        <property name="keyStore" ref="trustStore" />
+    </bean>
+
+    <!-- SSLContext Configuration for mTLS -->
+    <bean id="sslContextParameters" class="org.apache.camel.util.jsse.SSLContextParameters">
+        <property name="keyManagers" ref="keyManagers" />
+        <property name="trustManagers" ref="trustManagers" />
+        <property name="secureSocketProtocol" value="TLS" />
+    </bean>
+
+    <!-- Jetty Component Configuration (mTLS server) -->
+    <bean id="jetty" class="org.apache.camel.component.jetty.JettyHttpComponent">
+        <property name="sslContextParameters" ref="sslContextParameters" />
+    </bean>
 
 
 <beans xmlns="http://www.springframework.org/schema/beans"
