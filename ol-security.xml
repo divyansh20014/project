@@ -112,3 +112,15 @@
     
 </beans>
 
+
+<bean id="jetty" class="org.apache.camel.component.jetty.JettyHttpComponent">
+    <property name="sslSocketConnectorProperties">
+        <map>
+            <entry key="password" value="..."/>
+            <entry key="keyPassword" value="..."/>
+            <entry key="keystore" value="..."/>
+            <entry key="needClientAuth" value="..."/>
+            <entry key="truststore" value="..."/>
+        </map>
+    </property>
+</bean>
