@@ -38,3 +38,5 @@ keytool -import -alias server -file server-cert.pem -keystore client-truststore.
 
 keytool -import -alias client -file client-cert.pem -keystore server-truststore.p12 -storetype PKCS12 -storepass serverTruststorePassword
 keytool -import -alias server -file server-cert.pem -keystore client-truststore.p12 -storetype PKCS12 -storepass clientTruststorePassword
+
+openssl s_client -connect localhost:8443 -cert client-cert.pem -key client-key.pem -CAfile server-cert.pem
