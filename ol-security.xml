@@ -9,7 +9,7 @@
         <property name="keyPassword" value="keyPassword" />
     </bean>
 
-    <!-- Truststore Configuration -->
+   
     <bean id="trustStore" class="org.apache.camel.util.jsse.KeyStoreParameters">
         <property name="resource" value="file:/path/to/truststore.jks" />
         <property name="password" value="truststorePassword" />
