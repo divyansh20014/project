@@ -40,3 +40,29 @@ keytool -import -alias client -file client-cert.pem -keystore server-truststore.
 keytool -import -alias server -file server-cert.pem -keystore client-truststore.p12 -storetype PKCS12 -storepass clientTruststorePassword
 
 openssl s_client -connect localhost:8443 -cert client-cert.pem -key client-key.pem -CAfile server-cert.pem
+
+
+<bean id="serverKeyStore" class="org.apache.camel.util.jsse.KeyStoreParameters">
+    <property name="resource" value="file:/path/to/server-keystore.p12" />
+    <property name="password" value="serverPassword" />
+</bean>
+
+<bean id="serverKeyManagers" class="org.apache.camel.util.jsse.KeyManagersParameters">
+    <property name="keyStore" ref="serverKeyStore" />
+    <property name="keyPassword" value="serverPassword" />
+</bean>
+
+<bean id="serverTrustStore" class="org.apache.camel.util.jsse.KeyStoreParameters">
+    <property name="resource" value="file:/path/to/server-truststore.p12" />
+    <property name="password" value="serverTruststorePassword" />
+</bean>
+
+<bean id="serverTrustManagers" class="org.apache.camel.util.jsse.TrustManagersParameters">
+    <property name="keyStore" ref="serverTrustStore" />
+</bean>
+
+<bean id="sslContextParameters" class="org.apache.camel.util.jsse.SSLContextParameters">
+    <property name="keyManagers" ref="serverKeyManagers" />
+    <property name="trustManagers" ref="serverTrustManagers" />
+    <property name="secureSocketProtocol" value="TLS" />
+</bean>
