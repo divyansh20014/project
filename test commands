@@ -24,48 +24,6 @@ curl -X POST http://localhost:8000/test \
 
 SELECT rua_30byte_string_001 AS EFMSChannelReferenceNumber, rua_20byte_string_005 AS Action, rua_10byte_string_001 AS TransactionCode, smh_client_tran_type AS TransferType, rqo_tran_date || ' ' || rqo_tran_time AS ActionDateTime, xqo_cust_num AS CustomerId, aqo_acct_num AS AccountId, hqo_limit_amt AS ChannelDailyLimitAmount, hqo_limit_curr_code AS ChannelDailyLimitCurrency, aqd_avail_bal AS BalanceAmount, rua_3byte_string_002 AS BalanceCurrency, tbt_mod_amt AS TransactionAmountInLocalCurrencyAmount, tbt_tran_amt AS TransactionAmountInTransactionCurrencyAmount, tbt_tran_curr_code AS TransactionAmountInTransactionCurrencyCurrency, hob_ip_cntry_code AS CountryISO2, hob_ip_address AS ClientIPAddress, rua_10byte_string_007 AS BeneficiaryCountry, tpp_bank_name AS BeneficiaryBankName, tpp_acct_num AS BeneficiaryAccountId, xqo_emp_flg AS StaffFlag, hqo_msg_type AS DeviceName, tpp_acct_type AS OrgName, tpp_name AS BeneficiaryName, tpp_num AS BeneficiaryId, hqo_device_id AS ChannelDeviceId, hqo_device_id_type AS RBADeviceIdType, rua_10byte_string_008 AS CustomerNetWorthAmount, rua_3byte_string_003 AS CustomerNetWorthCurrency, hqo_card_num AS MaskedCardNumber, rua_20byte_string_001 AS MerchantId, rua_8byte_string_002 AS CreditCardLimitAmount, rua_3byte_string_004 AS CreditCardLimitCurrency FROM your_table_name;
 
-keytool -genkeypair -v -keystore server-keystore.p12 -keyalg RSA -keysize 2048 -storetype PKCS12 -storepass serverPassword -keypass serverPassword -alias server -dname "CN=localhost, OU=Test, O=TestOrg, L=TestCity, S=TestState, C=US"
-keytool -genkeypair -v -keystore client-keystore.p12 -keyalg RSA -keysize 2048 -storetype PKCS12 -storepass clientPassword -keypass clientPassword -alias client -dname "CN=localhost, OU=Test, O=TestOrg, L=TestCity, S=TestState, C=US"
-openssl pkcs12 -in client-keystore.p12 -clcerts -nokeys -out client-cert.pem
-
-openssl pkcs12 -in client-keystore.p12 -nocerts -out client-key.pem
-openssl rsa -in client-key.pem -out client-key.pem
-
-openssl pkcs12 -in server-keystore.p12 -clcerts -nokeys -out server-cert.pem
-
-openssl pkcs12 -in server-keystore.p12 -nocerts -out server-key.pem
-openssl rsa -in server-key.pem -out server-key.pem
-keytool -import -alias client -file client-cert.pem -keystore server-truststore.p12 -storetype PKCS12 -storepass serverTruststorePassword
-keytool -import -alias server -file server-cert.pem -keystore client-truststore.p12 -storetype PKCS12 -storepass clientTruststorePassword
+{"Data":{"EFMSChannelReferenceNumber":"EFMS1234567890","Action":"Payment","TransactionCode":"IOL","TransferType":"Wire Transfer","ActionDateTime":"2024-10-16T15:57:36.650Z","CustomerId":"CUST1234567890","PaymentType":"Credit Transfer","TouchpointBalance":"2500","AccountId":"ACC1234567890","ChannelDailyLimit":{"Amount":"5000","Currency":"AED"},"Balance":{"Amount":"2000","Currency":"AED"},"TransactionAmountInLocalCurrency":{"Amount":"367","Currency":"AED"},"TransactionAmountInTransactionCurrency":{"Amount":"2280","Currency":"INR"},"CountryISO2":"AE","ClientIPAddress":"192.168.1.100","BeneficiaryCountry":"IN","BeneficiaryBankName":"State Bank of India","BeneficiaryAccountId":"SBI1234567890","StaffFlag":false,"Platform":"Mobile Banking","DeviceName":"Samsung Galaxy S22","OrgName":"Abu Dhabi Commercial Bank","BeneficiaryName":"John Doe","BeneficiaryId":"BEN1234567890","ChannelDeviceId":"DEVICE1234567890","RBADeviceIdType":"IMEI","RBADeviceId":"357915123456789","CustomerNetWorth":{"Amount":"15000","Currency":"AED"},"MaskedCardNumber":"4111-xxxx-xxxx-1234","MerchantId":"MERC1234567890","CreditCardLimit":{"Amount":"10000","Currency":"AED"}}}
 
 
-keytool -import -alias client -file client-cert.pem -keystore server-truststore.p12 -storetype PKCS12 -storepass serverTruststorePassword
-keytool -import -alias server -file server-cert.pem -keystore client-truststore.p12 -storetype PKCS12 -storepass clientTruststorePassword
-
-openssl s_client -connect localhost:8443 -cert client-cert.pem -key client-key.pem -CAfile server-cert.pem
-
-
-<bean id="serverKeyStore" class="org.apache.camel.util.jsse.KeyStoreParameters">
-    <property name="resource" value="file:/path/to/server-keystore.p12" />
-    <property name="password" value="serverPassword" />
-</bean>
-
-<bean id="serverKeyManagers" class="org.apache.camel.util.jsse.KeyManagersParameters">
-    <property name="keyStore" ref="serverKeyStore" />
-    <property name="keyPassword" value="serverPassword" />
-</bean>
-
-<bean id="serverTrustStore" class="org.apache.camel.util.jsse.KeyStoreParameters">
-    <property name="resource" value="file:/path/to/server-truststore.p12" />
-    <property name="password" value="serverTruststorePassword" />
-</bean>
-
-<bean id="serverTrustManagers" class="org.apache.camel.util.jsse.TrustManagersParameters">
-    <property name="keyStore" ref="serverTrustStore" />
-</bean>
-
-<bean id="sslContextParameters" class="org.apache.camel.util.jsse.SSLContextParameters">
-    <property name="keyManagers" ref="serverKeyManagers" />
-    <property name="trustManagers" ref="serverTrustManagers" />
-    <property name="secureSocketProtocol" value="TLS" />
-</bean>
