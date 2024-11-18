@@ -1,0 +1,604 @@
+status update
+
+import org.apache.camel.Exchange;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.security.KeyStore;
+import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+
+import org.apache.log4j.Logger;
+
+import com.sas.finance.fraud.transaction.LengthCodec;
+import com.sas.finance.fraud.transaction.MessageAPI;
+import com.sas.finance.fraud.transaction.MessageApiEncoding;
+import com.sas.finance.fraud.transaction.Segment;
+import com.sas.finance.fraud.transaction.SegmentType;
+import com.sas.finance.fraud.transaction.Transaction;
+import com.sas.finance.fraud.transaction.field.Field;
+import com.sas.finance.fraud.transaction.util.Utils;
+
+import java.text.SimpleDateFormat;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
+
+public class JsonMapping {
+		
+    private String EFMSChannelReferenceNumber = "", Action = "", TransactionCode = "", ActionDateTime = "", CustomerId = "", RBADeviceId = "", ChannelDeviceId = "", CountryISO2 = "", ClientIPAddress = "", AuthenticationMethod = "", DeviceType = "", DeviceModel = "", TransactionDescription = "", BeneficiaryAccountId = "", BeneficiaryId = "", TransactionStatus = "", tranDate = "", tranTime = "", ChannelCode = "";
+
+public void jsonMapping(Exchange exchange) {
+	System.out.println("Started mapping logic for Non Financial");
+    // Get the incoming JSON from the Camel exchange
+	String ChannelCode = exchange.getIn().getHeader("ChannelCode",String.class);
+    String textJson = exchange.getIn().getBody(String.class);
+
+    // Only proceed if the incoming JSON is not empty
+    if (textJson != null && !textJson.isEmpty()) {
+        // Parse the JSON string
+        JSONObject jsonObject1 = new JSONObject(textJson);
+	JSONObject jsonObject = jsonObject1.getJSONObject("Data");
+
+        // Map the fields from the JSON to the class fields
+		EFMSChannelReferenceNumber = jsonObject.optString("EFMSChannelReferenceNumber", "");
+		Action = jsonObject.optString("Action", "");
+		TransactionCode = jsonObject.optString("TransactionCode", "");
+		ActionDateTime = jsonObject.optString("ActionDateTime", "");
+		CustomerId = jsonObject.optString("CustomerId", "");
+		RBADeviceId = jsonObject.optString("RBADeviceId", "");
+		ChannelDeviceId = jsonObject.optString("ChannelDeviceId", "");
+		CountryISO2 = jsonObject.optString("CountryISO2", "");
+		ClientIPAddress = jsonObject.optString("ClientIPAddress", "");
+		AuthenticationMethod = jsonObject.optString("AuthenticationMethod", "");
+		DeviceType = jsonObject.optString("DeviceType", "");
+		DeviceModel = jsonObject.optString("DeviceModel", "");
+		TransactionDescription = jsonObject.optString("TransactionDescription", "");
+		BeneficiaryAccountId = jsonObject.optString("BeneficiaryAccountId", "");
+		BeneficiaryId = jsonObject.optString("BeneficiaryId", "");
+		TransactionStatus = jsonObject.optString("TransactionStatus", "");
+
+
+
+        // Handle ActionDateTime and split it into date and time
+			if (ActionDateTime != null && !ActionDateTime.isEmpty()) {
+						// Parse the ActionDateTime field to extract date and time
+					   SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+					Date date = inputDateFormat.parse(ActionDateTime);
+
+					// Format the date part (YYMMDD format)
+					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+					tranDate = dateFormat.format(date); // Result: "241016" (for 2024-10-16)
+
+					// Format the time part (HH:mm:ss.SS format)
+					SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss.SSS");
+					tranTime = timeFormat.format(date); // Result: "15:57:59.246"
+
+					// You can format the time part further to get two digits for milliseconds
+					tranTime = tranTime.substring(0, 8) + "." + tranTime.substring(9, 11); // Result: "15:57:59.24"
+            }
+
+  
+        try {
+            MessageAPI api = MessageAPI.getDefault();
+            MessageApiEncoding apie = MessageApiEncoding.getDefault();
+            LengthCodec lc = LengthCodec.PREPEND2;
+
+            // Create transaction
+            Transaction txn = new Transaction(apie);
+
+    
+       txn.addSegment(SegmentType.SMH);
+		txn.addSegment(SegmentType.RRR);
+		txn.addSegment(SegmentType.RQO);
+		txn.addSegment(SegmentType.XQO);
+		txn.addSegment(SegmentType.AQO);
+		txn.addSegment(SegmentType.AQD);
+		txn.addSegment(SegmentType.UNM);
+		txn.addSegment(SegmentType.HQO);
+		txn.addSegment(SegmentType.HOB);
+		txn.addSegment(SegmentType.TBT);
+		txn.addSegment(SegmentType.TPP);
+		txn.addSegment(SegmentType.RUA);
+		txn.addSegment(SegmentType.ROB);
+		txn.addSegment(SegmentType.RDK);
+		txn.addSegment(SegmentType.RUR);
+		//txn.addSegment(SegmentType.DUA);
+		//txn.addSegment(SegmentType.DEE);
+		//txn.addSegment(SegmentType.DNU);
+		
+    	// create fields
+        Field smh_tran_type = api.getField("smh_tran_type");
+        Field smh_resp_req = api.getField("smh_resp_req");
+        Field smh_acct_type = api.getField("smh_acct_type");
+        Field smh_activity_type = api.getField("smh_activity_type");
+		Field smh_activity_detail1 = api.getField("smh_activity_detail1");
+		Field smh_activity_detail2 = api.getField("smh_activity_detail2");
+		Field smh_activity_detail3 = api.getField("smh_activity_detail3");
+        Field smh_cust_type = api.getField("smh_cust_type");
+		Field smh_authenticate_mtd = api.getField("smh_authenticate_mtd");
+        Field smh_channel_type = api.getField("smh_channel_type");
+        Field smh_multi_org_name = api.getField("smh_multi_org_name");
+        Field smh_client_tran_type = api.getField("smh_client_tran_type");
+
+		smh_tran_type.encodeText(txn,"TRX");
+		smh_activity_detail1.encodeText(txn, "NAP");
+		smh_activity_detail2.encodeText(txn, "NAP");
+		smh_activity_detail3.encodeText(txn, "NAP");
+		smh_cust_type.encodeText(txn, "I");
+		smh_acct_type.encodeText(txn, "CS");
+		smh_authenticate_mtd.encodeText(txn, "NC");
+		smh_channel_type.encodeText(txn, "O");
+		smh_activity_type.encodeText(txn, "BF");
+		smh_resp_req.encodeText(txn, "1");
+		smh_multi_org_name.encodeText(txn, "GLOBAL");
+		smh_client_tran_type.encodeText(txn,"");
+		
+		Field rur_30byte_string_003 = api.getField("rur_30byte_string_003");
+		rur_30byte_string_003.encodeText(txn, EFMSChannelReferenceNumber);
+
+		Field rua_30byte_string_001 = api.getField("rua_30byte_string_001");
+		rua_30byte_string_001.encodeText(txn, EFMSChannelReferenceNumber);
+
+		Field rua_20byte_string_005 = api.getField("rua_20byte_string_005");
+		rua_20byte_string_005.encodeText(txn, Action);
+
+		Field rua_10byte_string_001 = api.getField("rua_10byte_string_001");
+		rua_10byte_string_001.encodeText(txn, TransactionCode);
+
+		Field rqo_tran_time = api.getField("rqo_tran_time");
+		rqo_tran_time.encodeText(txn, tranTime);
+
+		Field rqo_tran_date = api.getField("rqo_tran_date");
+		rqo_tran_date.encodeText(txn, tranDate);
+
+		Field xqo_cust_num = api.getField("xqo_cust_num");
+		xqo_cust_num.encodeText(txn, CustomerId);
+
+		Field rur_30byte_string_002 = api.getField("rur_30byte_string_002");
+		rur_30byte_string_002.encodeText(txn, CustomerId);
+
+		Field hqo_device_id = api.getField("hqo_device_id");
+		hqo_device_id.encodeText(txn, ChannelDeviceId);
+
+		Field rua_30byte_string_002 = api.getField("rua_30byte_string_002");
+		rua_30byte_string_002.encodeText(txn, ChannelDeviceId);
+
+		Field hob_ip_cntry_code = api.getField("hob_ip_cntry_code");
+		hob_ip_cntry_code.encodeText(txn, CountryISO2);
+
+		Field hob_ip_address = api.getField("hob_ip_address");
+		hob_ip_address.encodeText(txn, ClientIPAddress);
+
+		Field smh_authenticate_mtd = api.getField("smh_authenticate_mtd");
+		smh_authenticate_mtd.encodeText(txn, AuthenticationMethod);
+
+		Field hqo_device_id_type = api.getField("hqo_device_id_type");
+		hqo_device_id_type.encodeText(txn, DeviceType);
+
+		Field hqo_msg_type = api.getField("hqo_msg_type");
+		hqo_msg_type.encodeText(txn, DeviceModel);
+
+		Field tbt_description = api.getField("tbt_description");
+		tbt_description.encodeText(txn, TransactionDescription);
+
+		Field tpp_acct_num = api.getField("tpp_acct_num");
+		tpp_acct_num.encodeText(txn, BeneficiaryAccountId);
+
+		Field rua_20byte_string_004 = api.getField("rua_20byte_string_004");
+		rua_20byte_string_004.encodeText(txn, BeneficiaryAccountId);
+
+		Field tpp_num = api.getField("tpp_num");
+		tpp_num.encodeText(txn, BeneficiaryId);
+
+		Field rua_10byte_string_004 = api.getField("rua_10byte_string_004");
+		rua_10byte_string_004.encodeText(txn, BeneficiaryId);
+
+		Field rua_8byte_string_003 = api.getField("rua_8byte_string_003");
+		rua_8byte_string_003.encodeText(txn, ChannelCode);
+
+
+
+		 System.out.println("length is:" +txn.getLength());
+ 			
+		 System.out.println("before parsing transaction : " + txn);
+            ByteBuf txnBuf = convertTransactionToByteBuf(txn);
+            System.out.println("Transaction Fixed-Length Format:\n" + txnBuf);
+		exchange.getIn().setBody(txnBuf);
+
+        } catch (Exception e) {
+            System.out.println("Error mapping JSON to Transaction: " + e.getMessage());
+        }
+    }
+}
+	public static ByteBuf convertTransactionToByteBuf(Transaction txn) throws Exception 
+	{
+		// Aggregate all segments into a single byte array
+		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+	
+		for (SegmentType type : SegmentType.values()) {
+			byte[] segmentBytes = txn.getSegment(type);
+	
+			if (segmentBytes != null) {
+				// Convert segment bytes to a string to filter non-printable characters
+				StringBuilder filteredSegment = new StringBuilder();
+				for (byte b : segmentBytes) {
+					int character = b & 0xFF; // Convert byte to unsigned int
+					filteredSegment.append((char) replaceNonPrintableCharacterByWhitespace(character));
+				}
+	
+				// Convert the filtered string back to bytes in UTF-8
+				byte[] filteredBytes = filteredSegment.toString().getBytes(StandardCharsets.UTF_8);
+				byteArrayOutputStream.write(filteredBytes);
+			}
+		}
+		System.out.println("Byte array stream is : "+byteArrayOutputStream);
+	
+		// Convert the aggregated byte array into a ByteBuf
+		byte[] transactionBytes = byteArrayOutputStream.toByteArray();
+		System.out.println("Length of byte array : "+transactionBytes.length);
+		ByteBuf byteBuf = Unpooled.buffer(2+transactionBytes.length);
+			byteBuf.writeShort(transactionBytes.length);
+			byteBuf.writeBytes(transactionBytes);
+		System.out.println(byteBuf);
+		return byteBuf;
+	}
+
+	private static final int WS = 32; // ASCII for space
+	
+	private static int replaceNonPrintableCharacterByWhitespace(int character) 
+	{
+		// Add your non-printable character list or use the provided one
+		final char[] NON_PRINTABLE_EBCDIC_CHARS = new char[] {
+		0x00, 0x01, 0x02, 0x03, 0x9C, 0x09, 0x86, 0x7F, 0x97, 0x8D, 0x8E, 
+			0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x9D, 0x85, 0x08, 0x87, 0x18, 0x19, 0x92, 0x8F, 0x1C, 0x1D, 0x1E, 0x1F, 0x80, 
+			0x81, 0x82, 0x83, 0x84, 0x0A, 0x17, 0x1B, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x05, 0x06, 0x07, 0x90, 0x91, 0x16, 0x93, 0x94, 0x95, 0x96, 
+			0x04, 0x98, 0x99, 0x9A, 0x9B, 0x14, 0x15, 0x9E, 0x1A, 0x20, 0xA0 ,0xFE, 0xFF, 0xFFFD
+			// Add additional non-printable characters as needed
+		};
+	
+		for (char nonPrintableChar : NON_PRINTABLE_EBCDIC_CHARS) {
+			if (nonPrintableChar == (char) character) {
+				return WS; // Replace with whitespace
+			}
+		}
+		return character; // Return original if printable
+	}
+}
+			
+
+data feed
+
+import org.apache.camel.Exchange;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.security.KeyStore;
+import java.util.Date;
+import java.util.Locale;
+import java.util.concurrent.TimeUnit;
+
+import javax.net.ssl.KeyManagerFactory;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocket;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManagerFactory;
+
+import org.apache.log4j.Logger;
+
+import com.sas.finance.fraud.transaction.LengthCodec;
+import com.sas.finance.fraud.transaction.MessageAPI;
+import com.sas.finance.fraud.transaction.MessageApiEncoding;
+import com.sas.finance.fraud.transaction.Segment;
+import com.sas.finance.fraud.transaction.SegmentType;
+import com.sas.finance.fraud.transaction.Transaction;
+import com.sas.finance.fraud.transaction.field.Field;
+import com.sas.finance.fraud.transaction.util.Utils;
+
+import java.text.SimpleDateFormat;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
+
+public class JsonMapping {
+		
+    private String EFMSChannelReferenceNumber = "", Action = "", TransactionCode = "", ActionDateTime = "", CustomerId = "", RBADeviceId = "", ChannelDeviceId = "", CountryISO2 = "", ClientIPAddress = "", AuthenticationMethod = "", DeviceType = "", DeviceModel = "", OrgName = "", TransactionDescription = "", StaffFlag = "", Language = "", NewMobileNumber = "", NewEmailId = "", CardStatus = "", MaskedCardNumber = "", BeneficiaryType = "", BeneficiaryBankCountryCode = "", BeneficiaryBank = "", BeneficiaryAccountId = "", BeneficiaryName = "", BeneficiaryId = "", BeneficiaryNameCB = "", tranDate = "", tranTime = "", ChannelCode = "";
+
+
+public void jsonMapping(Exchange exchange) {
+	System.out.println("Started mapping logic for Non Financial");
+    // Get the incoming JSON from the Camel exchange
+	String ChannelCode = exchange.getIn().getHeader("ChannelCode",String.class);
+    String textJson = exchange.getIn().getBody(String.class);
+
+    // Only proceed if the incoming JSON is not empty
+    if (textJson != null && !textJson.isEmpty()) {
+        // Parse the JSON string
+        JSONObject jsonObject1 = new JSONObject(textJson);
+	JSONObject jsonObject = jsonObject1.getJSONObject("Data");
+
+        // Map the fields from the JSON to the class fields
+		EFMSChannelReferenceNumber = jsonObject.optString("EFMSChannelReferenceNumber", "");
+		Action = jsonObject.optString("Action", "");
+		TransactionCode = jsonObject.optString("TransactionCode", "");
+		ActionDateTime = jsonObject.optString("ActionDateTime", "");
+		CustomerId = jsonObject.optString("CustomerId", "");
+		RBADeviceId = jsonObject.optString("RBADeviceId", "");
+		ChannelDeviceId = jsonObject.optString("ChannelDeviceId", "");
+		CountryISO2 = jsonObject.optString("CountryISO2", "");
+		ClientIPAddress = jsonObject.optString("ClientIPAddress", "");
+		AuthenticationMethod = jsonObject.optString("AuthenticationMethod", "");
+		DeviceType = jsonObject.optString("DeviceType", "");
+		DeviceModel = jsonObject.optString("DeviceModel", "");
+		OrgName = jsonObject.optString("OrgName", "");
+		TransactionDescription = jsonObject.optString("TransactionDescription", "");
+	
+		boolean staffFlagBoolean = jsonObject.optBoolean("StaffFlag", false);
+		StaffFlag = staffFlagBoolean ? "Y" : "N";
+		
+		Language = jsonObject.optString("Language", "");
+		NewMobileNumber = jsonObject.optString("NewMobileNumber", "");
+		NewEmailId = jsonObject.optString("NewEmailId", "");
+		CardStatus = jsonObject.optString("CardStatus", "");
+		MaskedCardNumber = jsonObject.optString("MaskedCardNumber", "");
+		BeneficiaryType = jsonObject.optString("BeneficiaryType", "");
+		BeneficiaryBankCountryCode = jsonObject.optString("BeneficiaryBankCountryCode", "");
+		BeneficiaryBank = jsonObject.optString("BeneficiaryBank", "");
+		BeneficiaryAccountId = jsonObject.optString("BeneficiaryAccountId", "");
+		BeneficiaryName = jsonObject.optString("BeneficiaryName", "");
+		BeneficiaryId = jsonObject.optString("BeneficiaryId", "");
+		BeneficiaryNameCB = jsonObject.optString("BeneficiaryNameCB", "");
+
+		
+		
+
+
+
+        // Handle ActionDateTime and split it into date and time
+			if (ActionDateTime != null && !ActionDateTime.isEmpty()) {
+						// Parse the ActionDateTime field to extract date and time
+					   SimpleDateFormat inputDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+					Date date = inputDateFormat.parse(ActionDateTime);
+
+					// Format the date part (YYMMDD format)
+					SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd");
+					tranDate = dateFormat.format(date); // Result: "241016" (for 2024-10-16)
+
+					// Format the time part (HH:mm:ss.SS format)
+					SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm:ss.SSS");
+					tranTime = timeFormat.format(date); // Result: "15:57:59.246"
+
+					// You can format the time part further to get two digits for milliseconds
+					tranTime = tranTime.substring(0, 8) + "." + tranTime.substring(9, 11); // Result: "15:57:59.24"
+            }
+
+  
+        try {
+            MessageAPI api = MessageAPI.getDefault();
+            MessageApiEncoding apie = MessageApiEncoding.getDefault();
+            LengthCodec lc = LengthCodec.PREPEND2;
+
+            // Create transaction
+            Transaction txn = new Transaction(apie);
+
+    
+        txn.addSegment(SegmentType.SMH);
+		txn.addSegment(SegmentType.RRR);
+		txn.addSegment(SegmentType.RQO);
+		txn.addSegment(SegmentType.XQO);
+		txn.addSegment(SegmentType.AQO);
+		txn.addSegment(SegmentType.AQD);
+		txn.addSegment(SegmentType.UNM);
+		txn.addSegment(SegmentType.HQO);
+		txn.addSegment(SegmentType.HOB);
+		txn.addSegment(SegmentType.TBT);
+		txn.addSegment(SegmentType.TPP);
+		txn.addSegment(SegmentType.RUA);
+		txn.addSegment(SegmentType.ROB);
+		txn.addSegment(SegmentType.RDK);
+		txn.addSegment(SegmentType.RUR);
+		//txn.addSegment(SegmentType.DUA);
+		//txn.addSegment(SegmentType.DEE);
+		//txn.addSegment(SegmentType.DNU);
+		
+    	// create fields
+        Field smh_tran_type = api.getField("smh_tran_type");
+        Field smh_resp_req = api.getField("smh_resp_req");
+        Field smh_acct_type = api.getField("smh_acct_type");
+        Field smh_activity_type = api.getField("smh_activity_type");
+		Field smh_activity_detail1 = api.getField("smh_activity_detail1");
+		Field smh_activity_detail2 = api.getField("smh_activity_detail2");
+		Field smh_activity_detail3 = api.getField("smh_activity_detail3");
+        Field smh_cust_type = api.getField("smh_cust_type");
+		//Field smh_authenticate_mtd = api.getField("smh_authenticate_mtd");
+        Field smh_channel_type = api.getField("smh_channel_type");
+        Field smh_multi_org_name = api.getField("smh_multi_org_name");
+        Field smh_client_tran_type = api.getField("smh_client_tran_type");
+
+		smh_tran_type.encodeText(txn,"TRX");
+		smh_activity_detail1.encodeText(txn, "NAP");
+		smh_activity_detail2.encodeText(txn, "NAP");
+		smh_activity_detail3.encodeText(txn, "NAP");
+		smh_cust_type.encodeText(txn, "I");
+		smh_acct_type.encodeText(txn, "CS");
+		//smh_authenticate_mtd.encodeText(txn, "NC");
+		smh_channel_type.encodeText(txn, "O");
+		smh_activity_type.encodeText(txn, "BF");
+		smh_resp_req.encodeText(txn, "1");
+		smh_multi_org_name.encodeText(txn, "GLOBAL");
+		smh_client_tran_type.encodeText(txn,"");
+		
+		Field rur_30byte_string_003 = api.getField("rur_30byte_string_003");
+		rur_30byte_string_003.encodeText(txn, EFMSChannelReferenceNumber);
+
+		Field rua_30byte_string_001 = api.getField("rua_30byte_string_001");
+		rua_30byte_string_001.encodeText(txn, EFMSChannelReferenceNumber);
+
+		Field rua_20byte_string_005 = api.getField("rua_20byte_string_005");
+		rua_20byte_string_005.encodeText(txn, Action);
+
+		Field rua_8byte_string_001 = api.getField("rua_8byte_string_001");
+		rua_8byte_string_001.encodeText(txn, TransactionCode);
+
+		Field rqo_tran_time = api.getField("rqo_tran_time");
+		rqo_tran_time.encodeText(txn, tranTime);
+
+		Field rqo_tran_date = api.getField("rqo_tran_date");
+		rqo_tran_date.encodeText(txn, tranDate);
+
+		Field xqo_cust_num = api.getField("xqo_cust_num");
+		xqo_cust_num.encodeText(txn, CustomerId);
+
+		Field rur_30byte_string_002 = api.getField("rur_30byte_string_002");
+		rur_30byte_string_002.encodeText(txn, CustomerId);
+
+		Field hqo_device_id = api.getField("hqo_device_id");
+		hqo_device_id.encodeText(txn, ChannelDeviceId);
+
+		Field rua_30byte_string_002 = api.getField("rua_30byte_string_002");
+		rua_30byte_string_002.encodeText(txn, ChannelDeviceId);
+
+		Field hob_ip_cntry_code = api.getField("hob_ip_cntry_code");
+		hob_ip_cntry_code.encodeText(txn, CountryISO2);
+
+		Field hob_ip_address = api.getField("hob_ip_address");
+		hob_ip_address.encodeText(txn, ClientIPAddress);
+
+		Field smh_authenticate_mtd = api.getField("smh_authenticate_mtd");
+		smh_authenticate_mtd.encodeText(txn, AuthenticationMethod);
+
+		Field hqo_device_id_type = api.getField("hqo_device_id_type");
+		hqo_device_id_type.encodeText(txn, DeviceType);
+
+		Field hqo_msg_type = api.getField("hqo_msg_type");
+		hqo_msg_type.encodeText(txn, DeviceModel);
+
+		Field xqo_emp_flg = api.getField("xqo_emp_flg");
+		xqo_emp_flg.encodeText(txn, StaffFlag.equals("true") ? "Y" : "N");
+
+		Field xqo_language = api.getField("xqo_language");
+		xqo_language.encodeText(txn, Language);
+
+		Field xqo_phone = api.getField("xqo_phone");
+		xqo_phone.encodeText(txn, NewMobileNumber);
+
+		Field dee_entity_id_6 = api.getField("dee_entity_id_6");
+		dee_entity_id_6.encodeText(txn, NewEmailId);
+
+		Field rua_8byte_string_003 = api.getField("rua_8byte_string_003");
+		rua_8byte_string_003.encodeText(txn, CardStatus);
+
+		Field hqo_card_num = api.getField("hqo_card_num");
+		hqo_card_num.encodeText(txn, MaskedCardNumber);
+
+		Field rua_8byte_string_001 = api.getField("rua_8byte_string_001");
+		rua_8byte_string_001.encodeText(txn, BeneficiaryType);
+
+		Field rua_10byte_string_005 = api.getField("rua_10byte_string_005");
+		rua_10byte_string_005.encodeText(txn, BeneficiaryBankCountryCode);
+		
+		Field rua_10byte_string_006 = api.getField("rua_10byte_string_006");
+		rua_10byte_string_006.encodeText(txn, BeneficiaryBank);
+
+		Field rua_20byte_string_004 = api.getField("rua_20byte_string_004");
+		rua_20byte_string_004.encodeText(txn, BeneficiaryAccountId);
+
+		Field rua_10byte_string_003 = api.getField("rua_10byte_string_003");
+		rua_10byte_string_003.encodeText(txn, BeneficiaryName);
+		
+		Field rua_10byte_string_004 = api.getField("rua_10byte_string_004");
+		rua_10byte_string_004.encodeText(txn, BeneficiaryId);
+
+		Field rua_8byte_string_003 = api.getField("rua_8byte_string_003");
+		rua_8byte_string_003.encodeText(txn, ChannelCode);
+
+
+
+		 System.out.println("length is:" +txn.getLength());
+ 			
+		 System.out.println("before parsing transaction : " + txn);
+            ByteBuf txnBuf = convertTransactionToByteBuf(txn);
+            System.out.println("Transaction Fixed-Length Format:\n" + txnBuf);
+		exchange.getIn().setBody(txnBuf);
+
+        } catch (Exception e) {
+            System.out.println("Error mapping JSON to Transaction: " + e.getMessage());
+        }
+    }
+}
+	public static ByteBuf convertTransactionToByteBuf(Transaction txn) throws Exception 
+	{
+		// Aggregate all segments into a single byte array
+		ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+	
+		for (SegmentType type : SegmentType.values()) {
+			byte[] segmentBytes = txn.getSegment(type);
+	
+			if (segmentBytes != null) {
+				// Convert segment bytes to a string to filter non-printable characters
+				StringBuilder filteredSegment = new StringBuilder();
+				for (byte b : segmentBytes) {
+					int character = b & 0xFF; // Convert byte to unsigned int
+					filteredSegment.append((char) replaceNonPrintableCharacterByWhitespace(character));
+				}
+	
+				// Convert the filtered string back to bytes in UTF-8
+				byte[] filteredBytes = filteredSegment.toString().getBytes(StandardCharsets.UTF_8);
+				byteArrayOutputStream.write(filteredBytes);
+			}
+		}
+		System.out.println("Byte array stream is : "+byteArrayOutputStream);
+	
+		// Convert the aggregated byte array into a ByteBuf
+		byte[] transactionBytes = byteArrayOutputStream.toByteArray();
+		System.out.println("Length of byte array : "+transactionBytes.length);
+		ByteBuf byteBuf = Unpooled.buffer(2+transactionBytes.length);
+			byteBuf.writeShort(transactionBytes.length);
+			byteBuf.writeBytes(transactionBytes);
+		System.out.println(byteBuf);
+		return byteBuf;
+	}
+
+	private static final int WS = 32; // ASCII for space
+	
+	private static int replaceNonPrintableCharacterByWhitespace(int character) 
+	{
+		// Add your non-printable character list or use the provided one
+		final char[] NON_PRINTABLE_EBCDIC_CHARS = new char[] {
+		0x00, 0x01, 0x02, 0x03, 0x9C, 0x09, 0x86, 0x7F, 0x97, 0x8D, 0x8E, 
+			0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11, 0x12, 0x13, 0x9D, 0x85, 0x08, 0x87, 0x18, 0x19, 0x92, 0x8F, 0x1C, 0x1D, 0x1E, 0x1F, 0x80, 
+			0x81, 0x82, 0x83, 0x84, 0x0A, 0x17, 0x1B, 0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x05, 0x06, 0x07, 0x90, 0x91, 0x16, 0x93, 0x94, 0x95, 0x96, 
+			0x04, 0x98, 0x99, 0x9A, 0x9B, 0x14, 0x15, 0x9E, 0x1A, 0x20, 0xA0 ,0xFE, 0xFF, 0xFFFD
+			// Add additional non-printable characters as needed
+		};
+	
+		for (char nonPrintableChar : NON_PRINTABLE_EBCDIC_CHARS) {
+			if (nonPrintableChar == (char) character) {
+				return WS; // Replace with whitespace
+			}
+		}
+		return character; // Return original if printable
+	}
+}
+			
