@@ -1,0 +1,53 @@
+{
+    "Data": {
+        "EFMSChannelReferenceNumber": "string",
+        "Action": "string",
+        "TransactionCode": "string",
+        "TransferType": "string",
+        "ActionDateTime": "2024-10-16T15:57:36.650Z",
+        "CustomerId": "12345",
+        "PaymentType": "string",
+        "TouchpointBalance": 0,
+        "AccountId": "string",
+        "ChannelDailyLimit": {
+            "Amount": "100",
+            "Currency": "AED"
+        },
+        "Balance": {
+            "Amount": "100",
+            "Currency": "AED"
+        },
+        "TransactionAmountInLocalCurrency": {
+            "Amount": "367",
+            "Currency": "AED"
+        },
+        "TransactionAmountInTransactionCurrency": {
+            "Amount": "2280",
+            "Currency": "INR"
+        },
+        "CountryISO2": "AE",
+        "ClientIPAddress": "string",
+        "BeneficiaryCountry": "string",
+        "BeneficiaryBankName": "string",
+        "BeneficiaryAccountId": "string",
+        "StaffFlag": true,
+        "Platform": "string",
+        "DeviceName": "string",
+        "OrgName": "string",
+        "BeneficiaryName": "string",
+        "BeneficiaryId": "string",
+        "ChannelDeviceId": "string",
+        "RBADeviceIdType": "string",
+        "RBADeviceId": "string",
+        "CustomerNetWorth": {
+            "Amount": "100",
+            "Currency": "AED"
+        },
+        "MaskedCardNumber": "string",
+        "MerchantId": "string",
+        "CreditCardLimit": {
+            "Amount": "100",
+            "Currency": "AED"
+        }
+    }
+}
