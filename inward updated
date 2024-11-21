@@ -346,46 +346,6 @@ public void jsonMapping(Exchange exchange) {
 
 
 
-{
-  "Data": {
-    "Action": "AB",
-    "TransferType": "XY",
-    "ActionDateTime": "2020-01-13T00:00:00",
-    "CustomerId": "12",
-    "CustomerName": "John",
-    "ReceiverCustomerType": "XY",
-    "TransactionStatus": "OK",
-    "ReceiverAccountNumber": "11",
-    "ReceiverAccountType": "AB",
-    "ReceiverAccountStatus": "OK",
-    "CreditCardBalance": {
-      "Amount": "100",
-      "Currency": "AED"
-    },
-    "TransactionAmountInLocalCurrency": {
-      "Amount": "367",
-      "Currency": "AED"
-    },
-    "TransactionAmountInTransactionCurrency": {
-      "Amount": "2280",
-      "Currency": "INR"
-    },
-    "TransactionDesciption": "TX",
-    "TransactionReferenceNumber": "1234567890123456",
-    "CounterPartyName": "MN",
-    "CounterPartyBankCountryCode": "IN",
-    "CounterPartyBankName": "AB",
-    "CounterPartyCurrencyCode": "INR",
-    "CounterPartyAccountNumber": "44",
-    "DebitCurrencyAmount": "10",
-    "SalaryTransactionFlag": "YN",
-    "AccountSourcing": "01",
-    "CustomerAccountOpeningDate": "2020-01-13T00:00:00",
-    "CustomerSalary": {
-      "Amount": "100",
-      "Currency": "AED"
-    },
-    "CustomerNationality": "IN"
-  }
-}
+{"Data":{"Action":"AB","TransferType":"XY","ActionDateTime":"2020-01-13T00:00:00","CustomerId":"12","CustomerName":"John","ReceiverCustomerType":"XY","TransactionStatus":"OK","ReceiverAccountNumber":"11","ReceiverAccountType":"AB","ReceiverAccountStatus":"OK","CreditCardBalance":{"Amount":"100","Currency":"AED"},"TransactionAmountInLocalCurrency":{"Amount":"367","Currency":"AED"},"TransactionAmountInTransactionCurrency":{"Amount":"2280","Currency":"INR"},"TransactionDesciption":"TX","TransactionReferenceNumber":"1234567890123456","CounterPartyName":"MN","CounterPartyBankCountryCode":"IN","CounterPartyBankName":"AB","CounterPartyCurrencyCode":"INR","CounterPartyAccountNumber":"44","DebitCurrencyAmount":"10","SalaryTransactionFlag":"YN","AccountSourcing":"01","CustomerAccountOpeningDate":"2020-01-13T00:00:00","CustomerSalary":{"Amount":"100","Currency":"AED"},"CustomerNationality":"IN"}}
+
 		
