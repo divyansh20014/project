@@ -68,3 +68,15 @@ class AuthTokenManager implements Processor {
         return false;  // Token is invalid or has expired
     }
 }
+
+
+    <onException>
+        <exception>java.lang.Exception</exception>
+        <handled>true/>
+        <setHeader headerName="CamelHttpResponseCode">
+            <constant>401</constant>  <!-- Unauthorized HTTP Status -->
+        </setHeader>
+        <setBody>
+            <constant>Unauthorized</constant>  <!-- Unauthorized message -->
+        </setBody>
+    </onException>
