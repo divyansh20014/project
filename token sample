@@ -1,0 +1,5 @@
+curl -X POST "https://devmag.adcb.com/auth/oauth/v2/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --cert client_cert.pem \
+  --key client_key.pem \
+  -d "grant_type=client_credentials&client_id=your_client_id&client_secret=your
