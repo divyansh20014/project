@@ -3,3 +3,10 @@ curl -X POST "https://devmag.adcb.com/auth/oauth/v2/token" \
   --cert client_cert.pem \
   --key client_key.pem \
   -d "grant_type=client_credentials&client_id=your_client_id&client_secret=your
+
+
+curl -X POST "https://devmag.adcb.com/auth/oauth/v2/token" \
+  -d "client_id=fe82e73c-9579-4e8a-ad33-9a3b86eedcc3" \
+  -d "client_secret=b51c04e5-a205-4598-8138-426eada81e80" \
+  -d "scope=AccountDetails AccountBalancesDetails CustomerPersonalDetails" \
+  -d "grant_type=client_credentials"
