@@ -10,3 +10,7 @@ curl -X POST "https://devmag.adcb.com/auth/oauth/v2/token" \
   -d "client_secret=b51c04e5-a205-4598-8138-426eada81e80" \
   -d "scope=AccountDetails AccountBalancesDetails CustomerPersonalDetails" \
   -d "grant_type=client_credentials"
+
+
+openssl x509 -noout -modulus -in /path/to/client-cert.pem | openssl md5
+openssl rsa -noout -modulus -in /path/to/client-key.pem | openssl md5
