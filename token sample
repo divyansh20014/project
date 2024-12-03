@@ -13,7 +13,7 @@ curl -X POST "https://devmag.adcb.com/auth/oauth/v2/token" \
 
 
 openssl x509 -noout -modulus -in /path/to/client-cert.pem | openssl md5
-openssl rsa -noout -modulus -in /path/to/client-key.pem | openssl md5
+openssl rsa -noout -modulus -in /path/to/client-key.pem | openssl md5 
 
 curl -k -X POST "https://devmag.adcb.com/auth/oauth/v2/token" \
 -H "Content-Type: application/x-www-form-urlencoded" \
