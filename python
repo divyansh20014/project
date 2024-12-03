@@ -1,0 +1,33 @@
+import requests
+
+# Define the URL
+url = "https://devmag.adcb.com/auth/oauth/v2/token"
+
+# Define the data to be sent in the POST request (application/x-www-form-urlencoded)
+data = {
+    'client_id': 'fe82e73c-9579-4e8a-ad33-9a3b86eedcc3',
+    'client_secret': 'b51c04e5-a205-4598-8138-426eada81e80',
+    'scope': 'AccountDetails AccountBalancesDetails CustomerPersonalDetails',
+    'grant_type': 'client_credentials'
+}
+
+# Define the headers, including Content-Type
+headers = {
+    'Content-Type': 'application/x-www-form-urlencoded'
+}
+
+# Path to your client certificate and private key
+cert_path = 'Signed_Request.pem'
+key_path = 'private.pem.txt'
+
+# Send the POST request with the certificate, private key, and disabling SSL verification (equivalent to curl -k)
+response = requests.post(url, data=data, headers=headers, cert=(cert_path, key_path), verify=False)
+
+# Print the response status and content
+if response.status_code == 200:
+    # Parse and print the access token from the response JSON
+    access_token = response.json().get('access_token')
+    print(f"Access Token: {access_token}")
+else:
+    print(f"Error: {response.status_code}")
+    print(response.text)
