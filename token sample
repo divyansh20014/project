@@ -22,3 +22,86 @@ curl -k -X POST "https://devmag.adcb.com/auth/oauth/v2/token" \
 -d "scope=AccountDetails AccountBalancesDetails CustomerPersonalDetails" \
 -d "grant_type=client_credentials" \
 -v
+
+
+import java.io.*;
+import java.net.*;
+import javax.net.ssl.*;
+import java.security.*;
+import java.security.cert.*;
+
+public class OAuthClient {
+    public static void main(String[] args) throws Exception {
+        // Paths to the keystore
+        String keystorePath = "path_to_your_keystore.jks";
+        String keystorePassword = "your_keystore_password";  // Set your keystore password
+
+        // API URL and data
+        String urlString = "https://devmag.adcb.com/auth/oauth/v2/token";
+        String clientId = "fe82e73c-9579-4e8a-ad33-9a3b86eedcc3";
+        String clientSecret = "b51c04e5-a205-4598-8138-426eada81e80";
+        String scope = "AccountDetails AccountBalancesDetails CustomerPersonalDetails";
+        String grantType = "client_credentials";
+
+        // Prepare the URL-encoded body
+        String data = "client_id=" + clientId +
+                      "&client_secret=" + clientSecret +
+                      "&scope=" + scope +
+                      "&grant_type=" + grantType;
+
+        // Load the keystore with the certificates
+        KeyStore keyStore = KeyStore.getInstance("JKS");
+        try (FileInputStream keyStoreStream = new FileInputStream(keystorePath)) {
+            keyStore.load(keyStoreStream, keystorePassword.toCharArray());
+        }
+
+        // Initialize the KeyManagerFactory with the keystore
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+        kmf.init(keyStore, keystorePassword.toCharArray());
+
+        // Initialize the TrustManagerFactory (can use the default or load custom trust store)
+        TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+        tmf.init(keyStore);
+
+        // Set up SSLContext with the KeyManager and TrustManager
+        SSLContext sslContext = SSLContext.getInstance("TLS");
+        sslContext.init(kmf.getKeyManagers(), tmf.getTrustManagers(), new SecureRandom());
+
+        // Use HTTPS connection
+        URL url = new URL(urlString);
+        HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+        connection.setSSLSocketFactory(sslContext.getSocketFactory());
+        connection.setRequestMethod("POST");
+        connection.setDoOutput(true);
+        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+
+        // Write the body data to the connection
+        try (OutputStream os = connection.getOutputStream()) {
+            byte[] input = data.getBytes("utf-8");
+            os.write(input, 0, input.length);
+        }
+
+        // Get the response
+        int responseCode = connection.getResponseCode();
+        System.out.println("Response Code: " + responseCode);
+
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+            StringBuilder response = new StringBuilder();
+            String responseLine;
+            while ((responseLine = br.readLine()) != null) {
+                response.append(responseLine.trim());
+            }
+            System.out.println("Response: " + response.toString());
+        } catch (IOException e) {
+            // Handle error (like 4xx, 5xx responses)
+            try (BufferedReader br = new BufferedReader(new InputStreamReader(connection.getErrorStream(), "utf-8"))) {
+                StringBuilder errorResponse = new StringBuilder();
+                String errorLine;
+                while ((errorLine = br.readLine()) != null) {
+                    errorResponse.append(errorLine.trim());
+                }
+                System.err.println("Error Response: " + errorResponse.toString());
+            }
+        }
+    }
+}
