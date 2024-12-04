@@ -1,0 +1,239 @@
+
+/*  ------------------------------------ Settings ---------------------------------- */
+
+options metaserver="xxx123au.gsp.vsp.sas.com"
+        metaport=8561
+        metauser="sasadm@saspw"
+        metapass="XXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+        metaprotocol=bridge
+        metarepository=Foundation;
+
+
+option nofmterr NOQUOTELENMAX nonotes nofullstimer;
+
+filename pwfile '/sso/admin/sas/data/MRMUsers_xxx-830.csv';
+filename usermacs temp lrecl=18232;
+
+DATA work.pwfile;
+%let _EFIERR_ = 0; /* set the ERROR detection macro variable */
+INFILE pwfile delimiter = ',' MISSOVER DSD  firstobs=2 lrecl=9040 ;
+informat ID $32.;
+        informat Name $256.;
+     informat Type $16.;
+        informat Password $32.;
+     informat Description $256.;
+        informat Email $256.;
+        informat OMRGroup $char8192.;
+
+        format ID $32.;
+        format Name $256.;
+     format Type $16.;
+     format Password $32.;
+     format Description $256.;
+        format Email $256.;
+        format OMRGroup $8192.;
+
+        input
+            ID $
+            Name $
+         Type $
+         Password $
+         Description $
+            Email $
+            OMRGroup $
+        ;
+    if _ERROR_ then call symputx('_EFIERR_',1);  /* set ERROR detection macro variable */
+RUN;
+
+/*
+%sso_createuser
+--------------
+*/
+%macro sso_createuser(user_id=,user_name=,func_type=,user_pw=,user_desc=,user_email=,group_list=,rep_name=Foundation);
+%if %quote(&user_id) ne %then %do;
+
+    %* Get Repository Id and DefaultAuth auth. domain Id;
+    data _null_;
+        length id $17;
+        length uri $256;
+        length login_id $256;
+
+        %let login_id = &user_id;
+        %let user_id  = %sysfunc(coalescec(%scan(&user_id, 2, \), &user_id));
+
+        rc = metadata_resolve("omsobj:RepositoryBase?@Name='&rep_name'", '', id);
+        if rc > 0 then call symput("rep_id", id);
+
+        rc = metadata_resolve("omsobj:AuthenticationDomain?@Name='Web'", '', id);
+        if rc > 0 then call symput("webdomain", id);
+
+        rc = metadata_resolve("omsobj:AuthenticationDomain?@Name='DefaultAuth'", '', id);
+        if rc > 0 then call symput("domain", id);
+
+        rc = metadata_resolve("omsobj:Person?@Name='&user_id'", '', id);
+        if rc > 0 then call symput("u_id", id);
+
+        rc=metadata_getnass("omsobj:Person?@Name='&user_id'","EmailAddresses",1,uri);
+        rc = metadata_resolve(uri,"",id);
+        if rc > 0 then call symput("email_id", id);
+
+    run;
+
+    %if %quote(&rep_id) ne %then %do;
+
+        %let u_desc  = &user_desc;
+        %let group_nr = 0;
+        data _null;
+            %if %symexist(u_id) %then %do;
+                put " ";
+                put "Updating &user_name ...";
+            %end;
+            %else %do;
+                put " ";
+                put "Adding &user_name ...";
+            %end;
+        run;
+
+        %if "&group_list" ne "" %then %do;
+            data _null_;
+                length id $ 17;
+
+                %let i = 1;
+                %do %while("%scan(&group_list,&i,|)" ne "");
+                    %let g_name = %scan(&group_list,&i,|);
+                    rc = metadata_resolve("omsobj:IdentityGroup?@Name='&g_name'", '', id);
+
+                    if rc > 0 then do;
+                        call symput("g&i", id);
+                        put "SUCCESS: Adding to &g_name";
+                    end;
+                    else do;
+                        call symput("g&i", "-ERROR-");
+                        put "FAILURE: &g_name does not exist";
+                    end;
+                    %let i = %eval(&i + 1);
+                %end;
+            run;
+            %let group_nr = %eval(&i - 1);
+        %end;
+
+        %* Creating input xml;
+        filename outxml temp lrecl=1024;
+        filename inxml temp lrecl=1024;
+
+        data _null_;
+            file inxml;
+            %if %symexist(u_id) %then %do;
+                put "<UpdateMetadata>";
+                put "    <Metadata>";
+                put "        <Person Id='&u_id' Name='&user_id' DisplayName='&user_name' Desc='&u_desc' PublicType='User' UsageVersion='1000000'>";
+            %end;
+            %else %do;
+                put "<AddMetadata>";
+                put "    <Metadata>";
+                put "        <Person Id='' Name='&user_id' DisplayName='&user_name' Desc='&u_desc' PublicType='User' UsageVersion='1000000'>";
+            %end;
+
+            %if "&func_type" eq "" %then %do;
+                %let func_type=Merge;
+            %end;
+
+            put "            <IdentityGroups Function='&func_type'>";
+
+            %* Add user to the group if it exists (&g_id ne -ERROR-);
+            %if &group_nr > 0 %then %do;
+                %do i = 1 %to &group_nr;
+                    %let g_id = &&g&i;
+                    %if "&g_id" ne "-ERROR-" %then %do;
+                        put "                <IdentityGroup ObjRef='&g_id'/>";
+                    %end;
+                %end;
+            %end;
+
+            put "            </IdentityGroups>";
+
+            %* Set user email address or change it if it exists;
+            put "            <EmailAddresses>";
+            %if %symexist(email_id) and "&user_email" ne "" %then %do;
+                put "                <Email Id='&email_id' Name='Business' EmailType='Business' Address='&user_email'/>";
+            %end;
+            %else %do;
+                %if "&user_email" ne "" %then %do;
+                    put "                <Email Id='' Name='Business' EmailType='Business' Address='&user_email'/>";
+                %end;
+            %end;
+            put "            </EmailAddresses>";
+			
+			%* add Responsibleparties;
+			put "<ResponsibleParties>";
+			put "<ResponsibleParty Id='' Name='sasadm' Desc=''/>";
+			put "</ResponsibleParties>";
+
+
+            %if not %symexist(u_id) %then %do;
+			
+                put "        <Logins>"; /* DEFAULT AUTHENTICATION DOMAIN NOT NEEDED FOR SAML ACCOUNTS
+                put "            <Login Name='&user_id' Password='&user_pw' UserID='&login_id'>";
+                put "                <Domain Function='Replace'>";
+                put "                    <AuthenticationDomain ObjRef='&domain' Name='DefaultAuth' Desc=''/>";
+                put "                </Domain>";
+                put "            </Login>"; */
+
+
+                %if %symexist(webdomain) %then %do;
+                    put "            <Login Name='&user_id' Password='' UserID='&user_email'>"; /* USING EMAIL FOR WEB DOMAIN*/
+                    put "                <Domain Function='Replace'>";
+                    put    "                    <AuthenticationDomain ObjRef='&webdomain' Name='Web' Desc=''/>";
+                    put "                </Domain>";
+                    put "            </Login>";
+                %end;
+
+                put "        </Logins>";
+            %end;
+
+            put "        </Person>";
+            put "    </Metadata>";
+            put "    <Reposid>&rep_id</Reposid>";
+            put "    <NS>SAS</NS>";
+            put "    <!-- OMI_TRUSTED_CLIENT flag -->";
+            put "    <Flags>268435456</Flags>";
+            put "    <Options/>";
+            %if %symexist(u_id) %then %do;
+                put "</UpdateMetadata>";
+            %end;
+            %else %do;
+                put "</AddMetadata>";
+            %end;
+        run;
+
+        proc metadata in=inxml out=outxml; run;
+        filename inxml;
+    %end;
+%end;
+
+%mend;
+
+
+data _null_;
+    set work.pwfile;
+    length Password $ 32;
+    length Description $ 256;
+
+    attrib usermac length=$18232;
+    file usermacs;
+        usermac = compbl(
+                    '%sso_createuser(user_id='||ID||
+                    ', user_name='||Name||
+               ', func_type='||Type||
+                    ', user_pw='||Password||
+                    ', user_desc='||Description||
+                    ', user_email='||Email||
+                    ', group_list='||OMRGroup||');'
+                   );
+        put usermac;
+
+run;
+
+%include usermacs;
+
+
