@@ -2,7 +2,7 @@
 
 
 
-
+https://www.ondemand.sas.com/confluencedoc/display/NATINT/SA+-+NAT+-+MRM+Users+bulk-load
 
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
