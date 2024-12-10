@@ -126,3 +126,44 @@ By following these steps and checking each part of your configuration, you shoul
         </map>
     </property>
 </bean>
+
+
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+           http://www.springframework.org/schema/beans/spring-beans-4.3.xsd">
+
+    <!-- Server's KeyStore (Server private key and certificate) -->
+    <bean id="serverKeyStoreParams" class="org.apache.camel.component.ssl.KeyStoreParameters">
+        <property name="resource" value="file:/users/home/server/keystore.jks"/>
+        <property name="password" value="keystorePassword"/>
+    </bean>
+
+    <!-- Server's KeyManagers (Using the above KeyStore) -->
+    <bean id="serverKeyManagersParams" class="org.apache.camel.component.ssl.KeyManagersParameters">
+        <property name="keyStore" ref="serverKeyStoreParams"/>
+        <property name="keyPassword" value="keyPassword"/>
+    </bean>
+
+    <!-- Server's TrustStore (To validate the client certificates) -->
+    <bean id="serverTrustStoreParams" class="org.apache.camel.component.ssl.KeyStoreParameters">
+        <property name="resource" value="file:/users/home/server/truststore.jks"/>
+        <property name="password" value="truststorePassword"/>
+    </bean>
+
+    <!-- Server's TrustManagers (Using the above TrustStore) -->
+    <bean id="serverTrustManagersParams" class="org.apache.camel.component.ssl.TrustManagersParameters">
+        <property name="keyStore" ref="serverTrustStoreParams"/>
+    </bean>
+
+    <!-- Server SSLContext parameters -->
+    <bean id="sslContextServerParams" class="org.apache.camel.component.ssl.SSLContextServerParameters">
+        <property name="clientAuthentication" value="REQUIRE"/> <!-- Enforce client certificate authentication -->
+        <property name="trustManagers" ref="serverTrustManagersParams"/> <!-- TrustStore for client certificates -->
+    </bean>
+
+    <!-- Server SSLContext configuration -->
+    <bean id="sslContextParams" class="org.apache.camel.component.ssl.SSLContextParameters">
+        <property name="serverParameters" ref="sslContextServerParams"/>
+        <property name="keyManagers" ref="serverKeyManagersParams"/>
+    </bean>
