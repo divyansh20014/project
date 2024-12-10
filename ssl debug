@@ -108,3 +108,21 @@ Verify that the server’s TrustStore contains the client’s certificate (or CA
 Check the server logs for more detailed error information.
 Use openssl s_client to diagnose the handshake error in more detail.
 By following these steps and checking each part of your configuration, you should be able to resolve the handshake failure and get your mTLS configuration working correctly.
+
+
+
+<bean id="jetty" class="org.apache.camel.component.jetty.JettyHttpComponent">
+    <property name="sslSocketConnectors">
+        <map>
+            <entry key="8043">
+                <bean class="org.eclipse.jetty.server.ssl.SslSelectChannelConnector">
+                    <property name="password" value="..."/>
+                    <property name="keyPassword" value="..."/>
+                    <property name="keystore" value="..."/>
+                    <property name="needClientAuth" value="..."/>
+                    <property name="truststore" value="..."/>
+                </bean>
+            </entry>
+        </map>
+    </property>
+</bean>
