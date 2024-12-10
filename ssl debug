@@ -167,3 +167,6 @@ By following these steps and checking each part of your configuration, you shoul
         <property name="serverParameters" ref="sslContextServerParams"/>
         <property name="keyManagers" ref="serverKeyManagersParams"/>
     </bean>
+
+
+keytool -importcert -file client.crt -alias client-cert -keystore truststore.p12 -storetype PKCS12 -storepass truststorePassword
