@@ -1,3 +1,5 @@
+
+
 Steps to Set Up Server-Side SSL and mTLS Using PKCS#12
 1. Generate the Server Keystore in PKCS#12 Format
 The keystore holds the server's private key and public certificate, all stored together in a .p12 file.
@@ -48,3 +50,9 @@ bash
 Copy code
 keytool -import -file client.crt -keystore truststore.p12 -storetype PKCS12 -alias client
 client.crt: The certificate of the client that the server will trust.
+
+
+AHB - Basic YWhicHJvZGNsaWVudDE6WHk3YTlCcDNLdzJNdjZRcjhDdDFMejVZbjRWb0phMA==
+ 
+ 
+ADB - Basic YWRicHJvZGNsaWVudDE6MmFGN2RMOWtINHBSOG1CNnNXelEwdlQxWXhKM04=
