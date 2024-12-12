@@ -1,0 +1,50 @@
+Steps to Set Up Server-Side SSL and mTLS Using PKCS#12
+1. Generate the Server Keystore in PKCS#12 Format
+The keystore holds the server's private key and public certificate, all stored together in a .p12 file.
+
+Generate a Private Key and Self-Signed Certificate (for testing purposes)
+You can generate a PKCS#12 keystore with a self-signed certificate using the following keytool command:
+
+bash
+Copy code
+keytool -genkeypair -alias server -keyalg RSA -keysize 2048 -keystore server.p12 -storetype PKCS12 -validity 3650
+-alias server: The alias for the certificate.
+-keystore server.p12: The keystore file name, which will be in PKCS#12 format.
+-storetype PKCS12: Specifies the keystore type as PKCS#12.
+-validity 3650: Validity period of the certificate (10 years).
+You will be prompted for details such as:
+
+Keystore password
+Distinguished Name fields (Country, State, Organization, etc.)
+Once completed, you will have the server keystore in PKCS#12 format (server.p12).
+
+2. Export the Server’s Public Certificate (for the Truststore)
+If you want to create a truststore that contains the server’s certificate (for example, to trust the server certificate from the client side), you need to export the server’s certificate from the keystore.
+
+bash
+Copy code
+keytool -export -alias server -keystore server.p12 -storetype PKCS12 -file server.crt
+This will export the public certificate of the server (server.crt), which can then be used to populate the truststore.
+3. Generate the Truststore in PKCS#12 Format
+The truststore contains certificates that the server will trust, such as the client certificate or the CA certificate that signed the client’s certificate.
+
+Create the Truststore and Import the Server’s Certificate
+
+To create a truststore in PKCS#12 format and add the server’s certificate:
+
+bash
+Copy code
+keytool -import -file server.crt -keystore truststore.p12 -storetype PKCS12 -alias server
+server.crt: The certificate of the server (exported earlier).
+truststore.p12: The truststore in PKCS#12 format.
+-storetype PKCS12: Specifies the store type as PKCS#12.
+When prompted, enter the password for the truststore.
+
+Import the Client Certificate (for mTLS)
+
+If you want your server to trust client certificates (for mTLS), you need to import the client’s public certificate into the truststore:
+
+bash
+Copy code
+keytool -import -file client.crt -keystore truststore.p12 -storetype PKCS12 -alias client
+client.crt: The certificate of the client that the server will trust.
