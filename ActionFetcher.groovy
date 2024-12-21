@@ -27,3 +27,36 @@ public class ActionExtractorProcessor implements Processor {
         }
     }
 }
+
+
+String textJson = exchange.getIn().getBody(String.class);
+
+// Only proceed if the incoming JSON is not empty
+if (textJson != null && !textJson.isEmpty()) {
+    // Parse the JSON string
+    JSONObject jsonObject1 = new JSONObject(textJson);
+    JSONObject jsonObject = jsonObject1.getJSONObject("Data");
+
+    // Map the fields from the JSON to the class fields
+    EFMSChannelReferenceNumber = jsonObject.optString("EFMSChannelReferenceNumber", "");
+    ChannelCode = jsonObject.optString("ChannelCode", "");
+    TransferType = jsonObject.optString("TransferType", "");
+    ActionDateTime = jsonObject.optString("ActionDateTime", "");
+    CustomerId = jsonObject.optString("CustomerId", "");
+    AccountId = jsonObject.optString("AccountId", "");
+    BeneficiaryAccountId = jsonObject.optString("BeneficiaryAccountId", "");
+    BeneficiaryName = jsonObject.optString("BeneficiaryName", "");
+    POSMode = jsonObject.optString("POSMode", "");
+    MaskedCardNumber = jsonObject.optString("MaskedCardNumber", "");
+    CardPresent = jsonObject.optString("CardPresent", "");
+    MerchantId = jsonObject.optString("MerchantId", "");
+    PaymentPurpose = jsonObject.optString("PaymentPurpose", "");
+    MerchantCategoryCode = jsonObject.optString("MerchantCategoryCode", "");
+    OnlineBankingUserID = jsonObject.optString("OnlineBankingUserID", "");
+
+    // Handle the nested "TransactionAmountInTransactionCurrency" object
+    if (jsonObject.optJSONObject("TransactionAmountInTransactionCurrency") != null) {
+        TransactionAmount = jsonObject.optJSONObject("TransactionAmountInTransactionCurrency").optString("Amount", "");
+        TransactionCurrency = jsonObject.optJSONObject("TransactionAmountInTransactionCurrency").optString("Currency", "");
+    }
+}
