@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><entityResponse xmlns="urn:SASFraudManagement:RTF_3_2" entityType="${/entityRequest/entityType}">
+	<entityID>${/entityRequest/entityID}</entityID>
+	<contactID>${/entityRequest/contactID}</contactID>
+	<contactType>${/entityRequest/contactType}</contactType>
+	<multiOrg>${/entityRequest/multiOrg}</multiOrg>
+
+	<blockGroupCode/>
+
+	<detailGroup name="demographic">
+		<detail name="Customer ID">${/CUSTOMER_ID}</detail>
+		<detail name="Account_Type">${/ACCOUNT_TYPE}</detail>
+		<detail name="Account_Iban_Num">${/ACCOUNT_IBAN_NUM}</detail>
+		<detail name="Account_Holder_Name">${/ACCOUNT_HOLDER_NAME}</detail>
+		
+		<detail name="Account_Status">${/ACCOUNT_STATUS}</detail>
+		<detail name="Account_Currency">${/ACCOUNT_CURRENCY}</detail>
+		<detail name="Maturity_Date">${/MATURITY_DATE}</detail>
+		<detail name="Account_Manager">${/ACCOUNT_MANAGER}</detail>
+
+		<detail name="Account_Available_Balance">${/ACCOUNT_AVAILABLE_BALANCE}</detail>
+		<detail name="Account_Current_Balance">${/ACCOUNT_CURRENT_BALANCE}</detail>
+		<detail name="Last_Deposit_Date">${/LAST_DEPOSIT_DATE}</detail>
+		<detail name="Account_Last_Deposit">${/ACCOUNT_LAST_DEPOSIT}</detail>
+		<detail name="Last_Withdrawl_Date">${/LAST_WITHDRAWL_DATE}</detail>
+		<detail name="Account_Last_Withdrawl">${/ACCOUNT_LAST_WITHDRAWL}</detail>
+
+		<detail name="Linked_Debit_Card_1">${/LINKED_DEBIT_CARD_1}</detail>
+		<detail name="Primary_Contact_Num">${/PRIMARY_CONTACT_NUM}</detail>
+		<detail name="Primary_Email">${/PRIMARY_EMAIL}</detail>
+		
+	</detailGroup>
+
+	<systemBlock1/>
+	<systemBlock2/>
+	<transactionBlock/>
+	
+</entityResponse>

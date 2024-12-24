@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?><entityResponse xmlns="urn:SASFraudManagement:RTF_3_2" entityType="X">
+	<entityID>${/entityRequest/entityID}</entityID>
+	<contactID>${/entityRequest/contactID}</contactID>
+	<contactType>X</contactType>
+	<multiOrg>${/entityRequest/multiOrg}</multiOrg>
+
+	<blockGroupCode/>
+
+	<detailGroup name="demographic">
+		<detail name="Merchant_Number">${/MERCHANT_NUMBER}</detail>
+		
+		<detail name="Commercial_Name">${/COMMERCIAL_NAME}</detail>
+		
+		<detail name="Type_Of_Business">${/TYPE_OF_BUSINESS}</detail>
+		<detail name="Nature_Of_Business">${/NATURE_OF_BUSINESS}</detail>
+		
+		<detail name="High_Risk_Flag">${/HIGH_RISK_FLAG}</detail>
+		<detail name="Key_Account_Flag_VIP">${/KEY_ACCOUNT_FLAG_VIP}</detail>
+		
+		<detail name="Contact_Person">${/CONTACT_PERSON}</detail>
+		<detail name="Telephone_Number">${/TELEPHONE_NUMBER}</detail>
+		
+		<detail name="City_Name">${/CITY_NAME}</detail>
+		
+		<detail name="Account_Number">${/ACCOUNT_NUMBER}</detail>
+		<detail name="Account_Name">${/ACCOUNT_NAME}</detail>
+		<detail name="Merchant_Account_Currency">${/MERCHANT_ACCOUNT_CURRENCY}</detail>
+		<detail name="Bank_Swift_Code">${/BANK_SWIFT_CODE}</detail>
+		<detail name="Merchant_Account_Profile">${/MERCHANT_ACCOUNT_PROFILE}</detail>
+		
+	</detailGroup>
+
+	<systemBlock1/>
+	<systemBlock2/>
+	<transactionBlock/>
+	
+</entityResponse>

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><entityResponse xmlns="urn:SASFraudManagement:RTF_3_2" entityType="${/entityRequest/entityType}">
+	<entityID>${/entityRequest/entityID}</entityID>
+	<contactID>${/entityRequest/contactID}</contactID>
+	<contactType>${/entityRequest/contactType}</contactType>
+	<multiOrg>${/entityRequest/multiOrg}</multiOrg>
+	<blockGroupCode/>
+
+	
+		
+	<detailGroup name="demographic">
+		<detail name="First_Name">${/firstName}</detail>
+		<detail name="Last_Name">${/lastName}</detail>
+		<detail name="Address_Line_1">${/addressLine1}</detail>
+		<detail name="City">${/city}</detail>
+		<detail name="Postal_Code">${/postalCode}</detail>
+		<detail name="Country">${/country}</detail>
+		<detail name="Work_Phone_1">${/mobilePhone1}</detail>
+		<detail name="Email">${/email}</detail>
+	
+		<detail name="Marital_Status">${/maritalStatus}</detail>
+
+
+		<detail name="Customer_Branch">${/customerBranch}</detail>
+	
+		<detail name="PEP_Flag">${/PEP_Flag}</detail>
+		<detail name="Non_Resident_Flag">${/Non_Resident_Flag}</detail>
+		
+		<detail name="Cust_Salary">${/custMonthlyIncome}</detail>
+		<detail name="Nationality">${/nationality}</detail>
+		
+		<detail name="Gender">${/gender}</detail>
+
+		<detail name="Addr_Last_updt">${/addrlstupdt}</detail>
+		<detail name="Homephone_Last_updt">${/homephone1lstupdt}</detail>
+		<detail name="Mobilephone_Last_updt">${/mobilephone1lstupdt}</detail>
+		<detail name="WorkPhone_Last_updt">${/workPhone1lstupdt}</detail>
+		<detail name="Email_Last_updt">${/emaillstupdt}</detail>
+		<detail name="DateOfBirth_Last_updt">${/dateofbirthlstupdt}</detail>
+
+		<detail name="Occupation">${/occupation}</detail>
+		
+
+		
+
+	</detailGroup>
+	
+
+	<systemBlock1/>
+	<systemBlock2/>
+	<transactionBlock/>
+	
+</entityResponse>

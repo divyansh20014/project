@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?><entityResponse xmlns="urn:SASFraudManagement:RTF_3_2" entityType="${/entityRequest/entityType}">
+	<entityID>${/entityRequest/entityID}</entityID>
+	<contactID>${/entityRequest/contactID}</contactID>
+	<contactType>${/entityRequest/contactType}</contactType>
+	<multiOrg>${/entityRequest/multiOrg}</multiOrg>
+
+	<blockGroupCode/>
+
+	<detailGroup name="demographic">
+		<detail name="Customer ID">${/CUSTOMER_ID}</detail>
+		<detail name="Card_Num">${/CARD_NUM}</detail>
+		<detail name="Cardholder_Name">${/CARDHOLDER_NAME}</detail>
+		
+		<detail name="Card_Credit_Limit">${/CARD_CREDIT_LIMIT}</detail>
+		<detail name="Total_Authorization_Limit">${/TOTAL_AUTHORIZATION_LIMIT}</detail>
+		<detail name="Cash_Authorization_Limit">${/CASH_AUTHORIZATION_LIMIT}</detail>
+
+		<detail name="Card_Bonus_Total">${/CARD_BONUS_TOTAL}</detail>
+		<detail name="Bonus_Start_Date">${/BONUS_START_DATE}</detail>
+		<detail name="Bonus_End_Date">${/BONUS_END_DATE}</detail>
+		<detail name="Card_Opening_Date">${/CARD_OPENING_DATE}</detail>
+		
+		<detail name="Online_Authorization_Card_Status">${/ONLINE_AUTHORIZATION_CARD_STATUS}</detail>
+		<detail name="Customer_Income">${/CUSTOMER_INCOME}</detail>
+		<detail name="Customer_Type">${/CUSTOMER_TYPE}</detail>
+		<detail name="Nationality">${/NATIONALITY}</detail>
+		<detail name="Employer_Name">${/EMPLOYER_NAME}</detail>
+		<detail name="Customer_Mobile_Number">${/CUSTOMER_MOBILE_NUM_DEFAULT_ADDRESS}</detail>
+		<detail name="Email_Address">${/EMAIL_ADDRESS_DEFAULT}</detail>
+		
+		<detail name="Date_of_Birth">${/DATE_OF_BIRTH}</detail>
+		<detail name="Gender">${/GENDER}</detail>
+		
+		
+		
+	</detailGroup>
+
+	<systemBlock1/>
+	<systemBlock2/>
+	<transactionBlock/>
+	
+</entityResponse>
