@@ -1,3 +1,48 @@
+import org.joda.time.DateTime;
+import java.util.Properties;
+import java.util.* ;
+import java.io.*;
+import java.security.*;
+import javapasswordsdk.* ;
+import javapasswordsdk.exceptions.*;
+import java.security.spec.InvalidKeySpecException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+import javax.crypto.*;
+import javax.crypto.spec.*;
+import javax.xml.bind.DatatypeConverter;
+import java.util.Base64.*;
+import java.util.Base64;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.security.cert.X509Certificate;
+import java.nio.charset.*;
+import java.net.*;
+import javax.net.ssl.*;
+import java.nio.file.*;
+import java.net.URL;
+import org.apache.camel.Exchange;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import org.w3c.dom.*;
+import org.xml.sax.InputSource;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import java.text.*;
+import org.apache.commons.lang3.StringUtils;
+import oracle.jdbc.driver.OracleDriver;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
+
 	private static Document convertStringToXMLDocument(String xmlString) 
     {
         //Parser that produces DOM object trees from XML content
