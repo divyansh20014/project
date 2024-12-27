@@ -1,4 +1,88 @@
+Step 1: Create the Truststore from the Server Certificate
+Assuming you have the server certificate file (let's call it server-cert.crt), you can create a truststore with the following command:
 
+bash
+Copy code
+keytool -import -alias server-cert -file /path/to/server-cert.crt -keystore /path/to/truststore.jks -storepass changeit
+/path/to/server-cert.crt: Replace with the actual path to your server certificate.
+/path/to/truststore.jks: Path where the truststore will be created (e.g., truststore.jks).
+changeit: Password for the truststore (you can change this to something secure).
+Step 2: Java Code to Use the Truststore
+Now that you've created a truststore with the server certificate, you can use it in your Java code. Here's a simple Java method to call the https://devmag.adcb.com/hello API:
+
+java
+Copy code
+import javax.net.ssl.HttpsURLConnection;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.security.KeyStore;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.SSLContext;
+
+public class SimpleSSLCertificateRequest {
+
+    // Method to send an API request using a truststore
+    public static String sendApiRequest(String urlString, String truststorePath, String truststorePassword) {
+        StringBuilder response = new StringBuilder();
+        try {
+            // Load the truststore
+            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
+            trustStore.load(new java.io.FileInputStream(truststorePath), truststorePassword.toCharArray());
+
+            // Initialize TrustManagerFactory with the truststore
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(trustStore);
+
+            // Initialize SSLContext with the TrustManager
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, tmf.getTrustManagers(), new java.security.SecureRandom());
+
+            // Set the default SSL context
+            HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+
+            // URL of the API endpoint
+            URL url = new URL(urlString);
+
+            // Create a connection
+            HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");  // Use "GET", "POST", etc. based on the API
+            connection.setDoOutput(true);  // Set to true if you want to send a body
+
+            // Set headers if needed
+            connection.setRequestProperty("Content-Type", "application/json");
+
+            // Get the response
+            int responseCode = connection.getResponseCode();
+            System.out.println("Response Code: " + responseCode);
+
+            // Read the response body
+            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
+                String inputLine;
+                while ((inputLine = in.readLine()) != null) {
+                    response.append(inputLine);
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error: " + e.getMessage();  // Return error message if something goes wrong
+        }
+
+        return response.toString();  // Return the API response as a string
+    }
+
+    public static void main(String[] args) {
+        // Example of how to call the method
+        String url = "https://devmag.adcb.com/hello";  // Your API URL
+        String truststorePath = "/path/to/truststore.jks";  // Path to your truststore
+        String truststorePassword = "changeit";  // Truststore password (the one you set during truststore creation)
+
+        // Call the method and print the response
+        String response = sendApiRequest(url, truststorePath, truststorePassword);
+        System.out.println("API Response: " + response);
+    }
+}
 
 import org.joda.time.DateTime;
 import java.util.Properties;
