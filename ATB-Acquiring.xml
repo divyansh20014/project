@@ -1,3 +1,6 @@
+docker logs --since "2023-12-01T10:00:00" --until "2023-12-01T15:00:00" <container_name_or_id> > /path/to/outputfile.log
+
+
 Step 1: Create the Truststore from the Server Certificate
 Assuming you have the server certificate file (let's call it server-cert.crt), you can create a truststore with the following command:
 
