@@ -1,467 +1,59 @@
-docker logs --since "2023-12-01T10:00:00" --until "2023-12-01T15:00:00" <container_name_or_id> > /path/to/outputfile.log
-
-
-Step 1: Create the Truststore from the Server Certificate
-Assuming you have the server certificate file (let's call it server-cert.crt), you can create a truststore with the following command:
-
-bash
-Copy code
-keytool -import -alias server-cert -file /path/to/server-cert.crt -keystore /path/to/truststore.jks -storepass changeit
-/path/to/server-cert.crt: Replace with the actual path to your server certificate.
-/path/to/truststore.jks: Path where the truststore will be created (e.g., truststore.jks).
-changeit: Password for the truststore (you can change this to something secure).
-Step 2: Java Code to Use the Truststore
-Now that you've created a truststore with the server certificate, you can use it in your Java code. Here's a simple Java method to call the https://devmag.adcb.com/hello API:
-
-java
-Copy code
-import javax.net.ssl.HttpsURLConnection;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.KeyStore;
-import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.HttpsURLConnection;
+import java.io.FileInputStream;
 
-public class SimpleSSLCertificateRequest {
+public class ApiProcessor {
 
-    // Method to send an API request using a truststore
-    public static String sendApiRequest(String urlString, String truststorePath, String truststorePassword) {
-        StringBuilder response = new StringBuilder();
+    public static void main(String[] args) {
         try {
-            // Load the truststore
+            // Load the Keystore (SSL certificates)
+            String trustStorePath = "path/to/mytruststore.jks"; // Replace with the actual path to your truststore
+            String trustStorePassword = "yourTrustStorePassword"; // Replace with the actual password
+
             KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            trustStore.load(new java.io.FileInputStream(truststorePath), truststorePassword.toCharArray());
+            try (FileInputStream trustStoreStream = new FileInputStream(trustStorePath)) {
+                trustStore.load(trustStoreStream, trustStorePassword.toCharArray());
+            }
 
-            // Initialize TrustManagerFactory with the truststore
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
+            // Set up TrustManagerFactory
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            trustManagerFactory.init(trustStore);
 
-            // Initialize SSLContext with the TrustManager
+            // Set up SSLContext with the TrustManager
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, tmf.getTrustManagers(), new java.security.SecureRandom());
+            sslContext.init(null, trustManagerFactory.getTrustManagers(), null);
 
-            // Set the default SSL context
+            // Set the default SSLContext
             HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
 
-            // URL of the API endpoint
-            URL url = new URL(urlString);
-
-            // Create a connection
+            // Set up the URL and connection
+            URL url = new URL("https://devmag.adcb.com:443/hello");
             HttpsURLConnection connection = (HttpsURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");  // Use "GET", "POST", etc. based on the API
-            connection.setDoOutput(true);  // Set to true if you want to send a body
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000); // 10 seconds timeout
+            connection.setReadTimeout(10000);    // 10 seconds timeout
 
-            // Set headers if needed
-            connection.setRequestProperty("Content-Type", "application/json");
-
-            // Get the response
-            int responseCode = connection.getResponseCode();
-            System.out.println("Response Code: " + responseCode);
-
-            // Read the response body
-            try (BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream(), "utf-8"))) {
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    response.append(inputLine);
-                }
+            // Read the response
+            BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                response.append(inputLine);
             }
+            in.close();
+
+            // Print the response
+            System.out.println("Response: " + response.toString());
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "Error: " + e.getMessage();  // Return error message if something goes wrong
         }
-
-        return response.toString();  // Return the API response as a string
-    }
-
-    public static void main(String[] args) {
-        // Example of how to call the method
-        String url = "https://devmag.adcb.com/hello";  // Your API URL
-        String truststorePath = "/path/to/truststore.jks";  // Path to your truststore
-        String truststorePassword = "changeit";  // Truststore password (the one you set during truststore creation)
-
-        // Call the method and print the response
-        String response = sendApiRequest(url, truststorePath, truststorePassword);
-        System.out.println("API Response: " + response);
-    }
-}
-
-import org.joda.time.DateTime;
-import java.util.Properties;
-import java.util.* ;
-import java.io.*;
-import java.security.*;
-import javapasswordsdk.* ;
-import javapasswordsdk.exceptions.*;
-import java.security.spec.InvalidKeySpecException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.Statement;
-import javax.crypto.*;
-import javax.crypto.spec.*;
-import javax.xml.bind.DatatypeConverter;
-import java.util.Base64.*;
-import java.util.Base64;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.security.cert.X509Certificate;
-import java.nio.charset.*;
-import java.net.*;
-import javax.net.ssl.*;
-import java.nio.file.*;
-import java.net.URL;
-import org.apache.camel.Exchange;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.*;
-import org.xml.sax.InputSource;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
-import org.json.simple.parser.JSONParser;
-import java.text.*;
-import org.apache.commons.lang3.StringUtils;
-import oracle.jdbc.driver.OracleDriver;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
-
-	private static Document convertStringToXMLDocument(String xmlString) 
-    {
-        //Parser that produces DOM object trees from XML content
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-         
-        //API to obtain DOM Document instance
-        DocumentBuilder builder = null;
-        try
-        {
-            //Create DocumentBuilder with default configuration
-            builder = factory.newDocumentBuilder();
-             
-            //Parse the content to Document object
-            Document doc = builder.parse(new InputSource(new StringReader(xmlString)));
-            return doc;
-        } 
-        catch (Exception e) 
-        {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-<?xml version="1.0" encoding="UTF-8"?>
-
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xmlns:rabbit="http://www.springframework.org/schema/rabbit"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xmlns:lang="http://www.springframework.org/schema/lang"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans
-       http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
-       http://camel.apache.org/schema/spring
-       http://camel.apache.org/schema/spring/camel-spring.xsd
-       http://www.springframework.org/schema/context
-       http://www.springframework.org/schema/context/spring-context.xsd
-       http://www.springframework.org/schema/util
-       http://www.springframework.org/schema/util/spring-util.xsd
-       http://www.springframework.org/schema/lang 
-       http://www.springframework.org/schema/lang/spring-lang.xsd
-       http://www.springframework.org/schema/rabbit
-       http://www.springframework.org/schema/rabbit/spring-rabbit-1.0.xsd
-	   ">
-	  
-	<bean id="bridgePropertyPlaceholder" class="org.apache.camel.spring.spi.BridgePropertyPlaceholderConfigurer">
-        <property name="ignoreResourceNotFound" value="true" />
-        <property name="locations">
-            <list>
-                <value>classpath:spring/camel-context.properties</value>
-            </list>
-        </property>
-    </bean>
-
-		
-	<!--Initiating groovy file for integration between SFM to VI for Confirmed Fraud Alerts-->
-	<lang:groovy id="jsonToMap" script-source="classpath:groovy/actionSFM.groovy"/>
-	<lang:groovy id="requestADIB" script-source="classpath:groovy/RTDRequest.groovy"/>
-	<lang:groovy id="sampleJson" script-source="classpath:groovy/sample_json.groovy"/>
-	<lang:groovy id="sampleJsonResponse" script-source="classpath:groovy/sample_json_response.groovy"/>
-	<lang:groovy id="errorHandling" script-source="classpath:groovy/error_handling.groovy"/>
-
-	<camelContext id="Acquiring" xmlns="http://camel.apache.org/schema/spring">
-
-		<errorHandler id="noErrorHandler" type="NoErrorHandler"/>
-		<routeContextRef ref="activeMqRoutes"/>
-		<routeContextRef ref="actionSFMRoute"/>
-
-        <threadPoolProfile id="defaultThreadPoolProfile" defaultProfile="true" poolSize="10" maxPoolSize="20" maxQueueSize="1000"
-                           allowCoreThreadTimeOut="false" rejectedPolicy="CallerRuns" />
-
-        <!-- Catch the authorization exception and set the Access Denied message back -->
-        <onException>
-            <exception>org.springframework.security.authentication.BadCredentialsException</exception>
-            <handled><constant>true</constant></handled>
-            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
-                <constant>401</constant>
-            </setHeader>
-            <transform>
-                <simple>Bad credentials</simple>
-            </transform>
-        </onException>
-        <onException>
-            <exception>org.apache.camel.CamelAuthorizationException</exception>
-            <handled><constant>true</constant></handled>
-            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
-                <constant>403</constant>
-            </setHeader>
-            <transform>
-                <simple>Access Denied: ${exception.policyId} !</simple>
-            </transform>
-        </onException>
-
-        <restConfiguration component="jetty" host="{{rest_hostname}}" port="{{rest_listen_port}}" bindingMode="off" apiContextPath="api-docs" apiContextListing="true" enableCORS="true">
-
-            <dataFormatProperty key="json.in.disableFeatures" value="FAIL_ON_UNKNOWN_PROPERTIES,ADJUST_DATES_TO_CONTEXT_TIME_ZONE" />
-            <dataFormatProperty key="json.in.enableFeatures" value="FAIL_ON_NUMBERS_FOR_ENUMS,USE_BIG_DECIMAL_FOR_FLOATS" />
-
-            <!-- we want json output in pretty mode -->
-            <dataFormatProperty key="prettyPrint" value="true"/>
-
-            <!-- setup swagger api descriptions -->
-            <apiProperty key="api.version" value="1.0.0"/>
-            <apiProperty key="api.title" value="EOP REST Services"/>
-            <apiProperty key="api.description" value="EOP REST API to send trasaction"/>
-            <apiProperty key="api.contact.name" value="SAS RAPTOR"/>
-            <apiProperty key="host" value="localhost:{{rest_listen_port}}"/>
-            <apiProperty key="schemes" value="http,https"/>
-        </restConfiguration>
-		
-		<rest apiDocs="false">
-			<post uri="/EFRMS/cards/gov_acquiring/transactions">
-                <route id="generalRoute" startupOrder="55">
-
-					<bean ref="sampleJson" method="jsonMapping"/>
-					
-					<setHeader headerName="csvId"> <constant>sample1</constant> </setHeader>
-					<setHeader headerName="delimiter"> <constant>,</constant> </setHeader>
-					<setHeader headerName="format"> <constant>csv</constant> </setHeader>
-					<setHeader headerName="mapperId"> <constant>csvMap1</constant> </setHeader>
-					<setHeader headerName="useSrcMap"> <constant>NO</constant> </setHeader>
-					
-					<to id="general_route_logger" uri="log:reporter?level=INFO&amp;groupInterval=5000&amp;groupDelay=5000"/>
-					<convertBodyTo type="java.lang.String"/>
-					
-					<doTry>
-						<bean ref="odeUtils" method="decodeWebString" />
-						<to uri="direct:requestDispatcher"/>
-						<doCatch>
-							<exception>com.sas.finance.fraud.transaction.field.Field$EncodeException</exception>
-							<bean ref="errorHandling" method="errorMessageJson" />
-							<stop />
-						</doCatch>
-					</doTry>
-				
-					<bean ref="txnToJsonString"/>
-					<bean ref="sampleJsonResponse" method="jsonMappingResponse"/>
-				</route>    
-            </post>	
-		</rest>
-	
-		<route id="Dispatcher" startupOrder="33">
-            <from uri="direct:requestDispatcher"/>
-            <!-- <onCompletion parallelProcessing="true"><to uri="direct:MsgHistLogger"/></onCompletion> -->
-
-            <doTry>
-                <bean ref="requestDispatcher" method="process"/>
-                <bean id="StoreUnqKeyFor_format" ref="uniqueKeySaver"/>
-                <to uri="disruptor:sendTransactionToODE?timeout={{sla_timeout}}&amp;waitForTaskToComplete=Always"/>
-                
-            </doTry>
-        </route>
-		
-		<route id="coreHandler" startupOrder="30" errorHandlerRef="noErrorHandler">
-            <from uri="disruptor:sendTransactionToODE?concurrentConsumers=8" />
-
-            <onCompletion><to uri="seda:collectPerfData"/></onCompletion>
-
-            <bean id="setTransactionId" ref="setTransactionId" />
-            <bean ref="customExchangeTracker" method="startLogging" />
-            <bean id="validation" ref="xtionValidator" method="validate" />
-
-            <doTry>
-            <loadBalance id="ODE Load Balancer" inheritErrorHandler="false">
-                <custom ref="odeLoadBalancer"/>
-				<to id="sfmdemo1" uri="netty4:tcp://{{ODE1}}:5018?sync=true&amp;encoder=#encoder&amp;decoder=#decoder"/>
-				<to id="sfmdemo2" uri="netty4:tcp://{{ODE2}}:5018?sync=true&amp;encoder=#encoder&amp;decoder=#decoder"/>
-				<to id="sfmdemo3" uri="netty4:tcp://{{ODE3}}:5018?sync=true&amp;encoder=#encoder&amp;decoder=#decoder"/>
-            </loadBalance>
-               <doCatch>
-                    <exception>java.net.ConnectException</exception>
-                    <exception>java.lang.RuntimeException</exception>
-					<setProperty propertyName="errorContent"><simple>${exception.message}</simple></setProperty>
-					<bean ref="errorHandling" method="errorMessageJson" />
-					<stop/>
-                    <to uri="direct:handleSendError"/>
-                </doCatch>
-            </doTry>
-
-            <bean ref="customExchangeTracker" method="endLogging" />
-            <bean id="cacheResponseForStandIn" ref="requestTimeoutHandler" method="handleSuccess" />
-        </route>
-		
-		<route id="handleSendError" startupOrder="20">
-            <from uri="direct:handleSendError" />
-            <doTry>
-                <!--<bean ref="saf" method="store"/>-->
-                <to uri="log:?level=ERROR" />
-                <doCatch>
-                    <!-- Exception thrown from here can cause errors recursively, we'd better catch it. -->
-                    <exception>java.lang.Throwable</exception>
-                    <to uri="log:?level=ERROR" />
-                </doCatch>
-            </doTry>
-        </route>
-
-	</camelContext>
-	
-</beans>
-import java.util.List;
-import java.util.ArrayList;
-import java.io.DataInputStream;
-import java.io.FileInputStream;
-import java.io.InputStream;
-import java.io.IOException;
-import java.security.InvalidAlgorithmParameterException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import javax.crypto.BadPaddingException;
-import javax.crypto.Cipher;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
-import java.util.Base64;
-import java.io.*;
-import java.security.*;
-import java.security.cert.X509Certificate;
-import java.util.*;
-import javax.crypto.*;
-import javax.crypto.spec.*;
-import java.nio.charset.*;
-import java.net.*;
-import javax.net.ssl.*;
-import java.nio.file.*;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.StringWriter;
-import java.net.MalformedURLException;
-import java.net.URL;
-import javax.net.ssl.HttpsURLConnection;
-import org.apache.camel.Exchange;
-import java.io.StringReader;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import org.w3c.dom.Document;
-import org.xml.sax.InputSource;
-import java.util.Map;
-import java.util.HashMap;
-import java.io.File;
-import org.w3c.dom.NodeList;
-import org.w3c.dom.Node;
-import org.w3c.dom.Element;
-import java.io.FileReader;
-import java.util.Iterator;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringReader;
-import java.net.UnknownHostException;
-import java.util.HashMap;
-import java.util.Map;
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import org.apache.camel.Exchange;
-import org.w3c.dom.Document;
-import org.w3c.dom.Element;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import org.json.JSONArray;
-import org.json.JSONObject;
-import org.json.JSONException;
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.*;
-import java.io.IOException;
-import java.util.Date;
-
-import java.io.FileReader;
-import java.util.Iterator;
-import java.text.*;
-import javax.xml.bind.DatatypeConverter;
-import java.nio.charset.Charset;
-import java.util.Base64.*;
-import java.nio.charset.StandardCharsets;
-
-
-{
-    "Data": {
-        "EFMSChannelReferenceNumber": "T400001",
-        "ChannelCode": "ECOM",
-        "TransferType": "DEBIT",
-        "ActionDateTime": "2024-12-20T15:57:36.650Z",
-        "CustomerId": "C00004",
-        "AccountId": "123000000000001",
-        "TransactionAmountInTransactionCurrency": {
-            "Amount": "1000000",
-            "Currency": "VND"
-        },
-        "BeneficiaryAccountId": "456000000000001",
-        "BeneficiaryName": "GALAXY FINANCIALS LTD",
-		"POSMode": "8E",
-        "MaskedCardNumber": "4567-8901-2345-0004",
-		"CardPresent": "0",
-        "MerchantId": "MER00001",
-		"PaymentPurpose": "",
-		"MerchantCategoryCode": "5732",
-		"OnlineBankingUserID": ""
-    }
-}
--------------------------blacklisted----------------------------------
-{
-    "Data": {
-        "EFMSChannelReferenceNumber": "T400002",
-        "ChannelCode": "ECOM",
-        "TransferType": "DEBIT",
-        "ActionDateTime": "2025-01-20T09:10:20.000Z",
-        "CustomerId": "C00004",
-        "AccountId": "123000000000001",
-        "TransactionAmountInTransactionCurrency": {
-            "Amount": "2500000",
-            "Currency": "VND"
-        },
-        "BeneficiaryAccountId": "456000000000002",
-        "BeneficiaryName": "RITZ CARLTON HOTELS LTD",
-		"POSMode": "8E",
-        "MaskedCardNumber": "4567-8901-2345-0004",
-		"CardPresent": "0",
-        "MerchantId": "MER00004",
-		"PaymentPurpose": "",
-		"MerchantCategoryCode": "3710",
-		"OnlineBankingUserID": ""
     }
 }
