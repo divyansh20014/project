@@ -57,3 +57,16 @@ public class ApiProcessor {
         }
     }
 }
+
+curl -X POST https://partners.sit.dtp.alhilalbankuaedev.ae/am/partner/oauth2/token \
+  -H "Content-Type: application/json" \
+  -d '{
+    "grant_type": "client_credentials",
+    "client_id": "your_client_id",
+    "client_secret": "your_client_secret"
+}'
+
+
+curl -X GET "http://partners.sit.dtp.alhilalbankuaedev.ae/sas/v1/customer/{customerid}" \
+  -H "Authorization: Bearer {access_token}" \
+  -H "Content-Type: application/json"
