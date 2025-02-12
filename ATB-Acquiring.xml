@@ -76,3 +76,7 @@ curl -X GET "http://partners.sit.dtp.alhilalbankuaedev.ae/sas/v1/customer/{custo
                       "client_secret=" + java.net.URLEncoder.encode(clientSecret, StandardCharsets.UTF_8) + "&" +
                       "scope=" + java.net.URLEncoder.encode(scope, StandardCharsets.UTF_8) + "&" +
                       "grant_type=" + java.net.URLEncoder.encode(grantType, StandardCharsets.UTF_8);
+
+
+        String scope = "AccountDetails AccountBalancesDetails CustomerPersonalDetails"; // Ensure this is initialized
+        String grantType = "client_credentials";
