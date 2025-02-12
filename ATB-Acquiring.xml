@@ -70,3 +70,9 @@ curl -X POST https://partners.sit.dtp.alhilalbankuaedev.ae/am/partner/oauth2/tok
 curl -X GET "http://partners.sit.dtp.alhilalbankuaedev.ae/sas/v1/customer/{customerid}" \
   -H "Authorization: Bearer {access_token}" \
   -H "Content-Type: application/json"
+
+
+        String data = "client_id=" + java.net.URLEncoder.encode(clientId, StandardCharsets.UTF_8) + "&" +
+                      "client_secret=" + java.net.URLEncoder.encode(clientSecret, StandardCharsets.UTF_8) + "&" +
+                      "scope=" + java.net.URLEncoder.encode(scope, StandardCharsets.UTF_8) + "&" +
+                      "grant_type=" + java.net.URLEncoder.encode(grantType, StandardCharsets.UTF_8);
